@@ -1,6 +1,6 @@
-# 📺 TV Show Encyclopedia
+# 🎬 Minimus – TV Show Encyclopedia
 
-**TV Show Encyclopedia** is a modern and responsive web application built with React that provides comprehensive information about TV shows and movies. The app uses public APIs to fetch real-time data, allowing users to explore and learn more about different shows with ease.
+**Minimus** is a modern and responsive web application built with React that serves as a TV Show Encyclopedia. It provides detailed and organized information about TV shows and movies. The app fetches real-time data from public APIs, enabling users to search and explore shows with a clean, elegant interface.
 
 ---
 
@@ -30,5 +30,5 @@
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/tv-show-encyclopedia.git
-cd tv-show-encyclopedia
+git clone https://github.com/your-username/minimus.git
+cd minimus
