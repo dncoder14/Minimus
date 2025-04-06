@@ -1,12 +1,34 @@
-# React + Vite
+# 📺 TV Show Encyclopedia
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**TV Show Encyclopedia** is a modern and responsive web application built with React that provides comprehensive information about TV shows and movies. The app uses public APIs to fetch real-time data, allowing users to explore and learn more about different shows with ease.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🌟 Features
 
-## Expanding the ESLint configuration
+- 🔍 **Search Functionality**: Find your favorite TV shows and movies by name.
+- 📄 **Show Details Page**: Click on any show to view detailed information, including a high-quality image and description.
+- 🧭 **Modern UI/UX**: Clean and stylish design with a responsive Navbar and Footer for easy navigation.
+- ⚡ **Fast and Responsive**: Optimized for smooth performance and mobile-friendly layout.
+- 🌐 **API Integration**: Uses the TV Maze API to display up-to-date show information.
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## 🔧 Tech Stack
+
+- **Frontend**: React.js (with Vite)
+- **Routing**: React Router DOM
+- **HTTP Requests**: Axios / native Fetch API
+- **Styling**: Plain CSS (no frameworks)
+- **API Used**:
+  - [TV Maze API](https://www.tvmaze.com/api)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/your-username/tv-show-encyclopedia.git
+cd tv-show-encyclopedia
