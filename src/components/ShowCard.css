@@ -1,0 +1,37 @@
+.show-card {
+    width: 210px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    background-color: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .show-card:hover {
+    transform: scale(1.05);
+  }
+  
+  .show-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  
+  .show-info {
+    padding: 10px;
+  }
+  
+  .show-info h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #333;
+  }
+  
+  .show-info p {
+    margin: 5px 0 0;
+    color: #777;
+    font-size: 0.9rem;
+  }
+  

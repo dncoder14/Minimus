@@ -1,0 +1,28 @@
+.home-container {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .home-container h1 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 20px;
+  }
+  
+  .search-bar {
+    padding: 10px;
+    width: 300px;
+    max-width: 90%;
+    margin-bottom: 30px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .show-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+  }
+  
