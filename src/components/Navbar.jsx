@@ -10,7 +10,6 @@ const Navbar = () => {
       </div>
       <ul className="navbar-links">
         <li><Link to="/">Home</Link></li>
-        <li><a href="https://www.tvmaze.com/" target="_blank" rel="noopener noreferrer">TVmaze</a></li>
       </ul>
     </nav>
   );
