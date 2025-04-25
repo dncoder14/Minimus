@@ -6,9 +6,14 @@ const Home = () => {
   const [shows, setShows] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
 
-  const itemsPerPage = 28; // Number of shows per page
+  const itemsPerPage = 28;
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+  
 
   useEffect(() => {
     const fetchShows = async () => {
@@ -16,7 +21,6 @@ const Home = () => {
         const response = await fetch("https://api.tvmaze.com/shows");
         const data = await response.json();
         setShows(data);
-        setTotalPages(Math.ceil(data.length / itemsPerPage)); // Calculate total pages
       } catch (error) {
         console.error("Error fetching shows:", error);
       }
@@ -25,11 +29,12 @@ const Home = () => {
     fetchShows();
   }, []);
 
-  // Apply the search query to all shows first, then paginate
   const filteredShows = shows
     .filter((show) =>
       show.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const totalPages = Math.ceil(filteredShows.length / itemsPerPage);
 
   const showsToDisplay = filteredShows.slice(
     (currentPage - 1) * itemsPerPage,
@@ -55,7 +60,7 @@ const Home = () => {
         type="text"
         placeholder="Search shows..."
         value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        onChange={(e) =>handleSearchChange(e)}
         className="search-bar"
       />
 
