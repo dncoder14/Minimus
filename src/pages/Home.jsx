@@ -5,6 +5,10 @@ import "./Home.css";
 const Home = () => {
   const [shows, setShows] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+
+  const itemsPerPage = 28; // Number of shows per page
 
   useEffect(() => {
     const fetchShows = async () => {
@@ -12,6 +16,7 @@ const Home = () => {
         const response = await fetch("https://api.tvmaze.com/shows");
         const data = await response.json();
         setShows(data);
+        setTotalPages(Math.ceil(data.length / itemsPerPage)); // Calculate total pages
       } catch (error) {
         console.error("Error fetching shows:", error);
       }
@@ -20,9 +25,28 @@ const Home = () => {
     fetchShows();
   }, []);
 
-  const filteredShows = shows.filter((show) =>
-    show.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Apply the search query to all shows first, then paginate
+  const filteredShows = shows
+    .filter((show) =>
+      show.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+  const showsToDisplay = filteredShows.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   return (
     <div className="home-container">
@@ -36,9 +60,21 @@ const Home = () => {
       />
 
       <div className="show-list">
-        {filteredShows.map((show) => (
+        {showsToDisplay.map((show) => (
           <ShowCard key={show.id} show={show} />
         ))}
+      </div>
+
+      <div className="pagination">
+        <button onClick={prevPage} disabled={currentPage === 1}>
+          Previous
+        </button>
+        <span>
+          Page {currentPage} of {totalPages}
+        </span>
+        <button onClick={nextPage} disabled={currentPage === totalPages}>
+          Next
+        </button>
       </div>
     </div>
   );
