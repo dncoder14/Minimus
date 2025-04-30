@@ -5,15 +5,11 @@ import "./Home.css";
 const Home = () => {
   const [shows, setShows] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [selectedGenre, setSelectedGenre] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
 
   const itemsPerPage = 28;
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1);
-  };
-  
 
   useEffect(() => {
     const fetchShows = async () => {
@@ -25,44 +21,88 @@ const Home = () => {
         console.error("Error fetching shows:", error);
       }
     };
-
     fetchShows();
   }, []);
 
-  const filteredShows = shows
-    .filter((show) =>
-      show.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Build genre list for the filter dropdown
+  const genres = ["All", ...Array.from(
+    new Set(shows.flatMap((show) => show.genres))
+  )];
+
+  // 1) Filter by search term
+  let processed = shows.filter((show) =>
+    show.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // 2) Filter by genre
+  if (selectedGenre !== "All") {
+    processed = processed.filter((show) =>
+      show.genres.includes(selectedGenre)
     );
+  }
 
-    const totalPages = Math.ceil(filteredShows.length / itemsPerPage);
+  // 3) Sort alphabetically
+  processed = processed.sort((a, b) =>
+    sortOrder === "asc"
+      ? a.name.localeCompare(b.name)
+      : b.name.localeCompare(a.name)
+  );
 
-  const showsToDisplay = filteredShows.slice(
+  // 4) Pagination calculations
+  const totalPages = Math.ceil(processed.length / itemsPerPage);
+  const showsToDisplay = processed.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const nextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
+  const nextPage = () =>
+    currentPage < totalPages && setCurrentPage((p) => p + 1);
+  const prevPage = () =>
+    currentPage > 1 && setCurrentPage((p) => p - 1);
 
   return (
     <div className="home-container">
       <h1>TV Show Encyclopedia</h1>
-      <input
-        type="text"
-        placeholder="Search shows..."
-        value={searchQuery}
-        onChange={(e) =>handleSearchChange(e)}
-        className="search-bar"
-      />
+
+      <div className="controls">
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search shows..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="search-bar"
+        />
+
+        {/* Sort */}
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          className="search-bar"
+        >
+          <option value="asc">Sort A–Z</option>
+          <option value="desc">Sort Z–A</option>
+        </select>
+
+        {/* Genre Filter */}
+        <select
+          value={selectedGenre}
+          onChange={(e) => {
+            setSelectedGenre(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="search-bar"
+        >
+          {genres.map((genre) => (
+            <option key={genre} value={genre}>
+              {genre}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="show-list">
         {showsToDisplay.map((show) => (

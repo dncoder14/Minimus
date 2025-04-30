@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import ShowDetails from './pages/ShowDetails';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import Watchlist from './pages/Watchlist';
 
 const App = () => {
   return (
@@ -13,6 +14,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/show/:id" element={<ShowDetails />} />
+          <Route path="/watchlist" element={<Watchlist />} />
         </Routes>
         <Footer />
       </div>

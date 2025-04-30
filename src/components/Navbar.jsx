@@ -10,6 +10,7 @@ const Navbar = () => {
       </div>
       <ul className="navbar-links">
         <li><Link to="/">Home</Link></li>
+        <li><Link to="/watchlist" className="text-blue-600 hover:underline">📺 Watchlist</Link></li>
       </ul>
     </nav>
   );

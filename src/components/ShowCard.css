@@ -1,37 +1,91 @@
+/* ShowCard.css */
 .show-card {
-    width: 210px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-    background-color: #fff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  }
-  
-  .show-card:hover {
-    transform: scale(1.05);
-  }
-  
-  .show-image {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-  
-  .show-info {
-    padding: 10px;
-  }
-  
-  .show-info h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    color: #333;
-  }
-  
-  .show-info p {
-    margin: 5px 0 0;
-    color: #777;
-    font-size: 0.9rem;
-  }
-  
+  width: 210px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.show-card:hover {
+  transform: scale(1.05);
+}
+
+.show-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.show-info {
+  padding: 10px;
+}
+
+.show-info h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.show-info p {
+  margin: 5px 0 0;
+  color: #777;
+  font-size: 0.9rem;
+}
+
+.show-actions {
+  display: flex;
+  padding: 10px;
+  gap: 5px;
+}
+
+.show-actions button {
+  flex-grow: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.watchlist-button {
+  background-color: #f0f0f0;
+  color: white;
+}
+
+.watchlist-button:hover {
+  background-color: #28a745;
+}
+
+.watchlist-button.on-watchlist {
+  background-color: #28a745;
+  color: white;
+}
+
+.watchlist-button.on-watchlist:hover {
+  background-color: #1e7e34;
+}
+
+.like-button {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.like-button:hover {
+  background-color: #dc3545;
+}
+
+.like-button.liked {
+  background-color: #dc3545;
+  color: white;
+}
+
+.like-button.liked:hover {
+  background-color: #c82333;
+}
