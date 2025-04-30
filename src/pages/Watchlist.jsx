@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './Watchlist.css';
+import { Link } from 'react-router-dom';  // Import Link
 
 const Watchlist = () => {
   const [watchlist, setWatchlist] = useState([]);
@@ -24,22 +25,24 @@ const Watchlist = () => {
         <ul className="watchlist-grid">
           {watchlist.map((show) => (
             <li key={show.id} className="watchlist-item">
-              <div className="watchlist-item-image">
-                <img
-                  src={show.image?.medium || "https://via.placeholder.com/210x295"}
-                  alt={show.name}
-                />
-              </div>
-              <div className="watchlist-item-details">
-                <h3 className="watchlist-item-title">{show.name}</h3>
-                <p className="watchlist-item-genres">{show.genres?.join(', ') || 'No genres listed'}</p>
-                <button
-                  onClick={() => removeFromWatchlist(show.id)}
-                  className="watchlist-remove-button"
-                >
-                  Remove
-                </button>
-              </div>
+              <Link to={`/show/${show.id}`} className="watchlist-item-link">  {/* Use Link here */}
+                <div className="watchlist-item-image">
+                  <img
+                    src={show.image?.medium || "https://via.placeholder.com/210x295"}
+                    alt={show.name}
+                  />
+                </div>
+                <div className="watchlist-item-details">
+                  <h3 className="watchlist-item-title">{show.name}</h3>
+                  <p className="watchlist-item-genres">{show.genres?.join(', ') || 'No genres listed'}</p>
+                </div>
+              </Link>
+              <button
+                onClick={() => removeFromWatchlist(show.id)}
+                className="watchlist-remove-button"
+              >
+                Remove
+              </button>
             </li>
           ))}
         </ul>
