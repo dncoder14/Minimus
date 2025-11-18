@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: minimus-backend
+    env: node
+    buildCommand: ./build.sh
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: minimus-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OMDB_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+databases:
+  - name: minimus-db
+    databaseName: minimus
+    user: minimus_user
