@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  name          String
+  email         String          @unique
+  password      String
+  role          Role            @default(USER)
+  reviews       Review[]
+  watchlists    Watchlist[]
+  favorites     Favorite[]
+  watched       Watched[]
+  createdAt     DateTime        @default(now())
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  imdbId    String   // IMDB ID reference
+  rating    Int      @db.TinyInt // 1-5 stars
+  comment   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  
+  @@unique([userId, imdbId]) // One review per user per movie
+}
+
+model Watchlist {
+  id        Int      @id @default(autoincrement())
+  imdbId    String   // IMDB ID reference
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  addedAt   DateTime @default(now())
+  
+  @@unique([userId, imdbId]) // One entry per user per movie
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  imdbId    String   // IMDB ID reference
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  addedAt   DateTime @default(now())
+  
+  @@unique([userId, imdbId])
+}
+
+model Watched {
+  id         Int      @id @default(autoincrement())
+  imdbId     String   // IMDB ID reference
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  watchedAt  DateTime @default(now())
+  
+  @@unique([userId, imdbId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
