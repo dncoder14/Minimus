@@ -7,4 +7,7 @@ npm install
 echo "Generating Prisma client..."
 npx prisma generate
 
+echo "Running database migrations..."
+npx prisma db push
+
 echo "Build completed successfully!"
