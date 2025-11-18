@@ -17,14 +17,14 @@ router.get('/search', async (req, res) => {
       return res.status(400).json({ error: 'Search query is required' });
     }
 
-    const response = await axios.get(`http://www.omdbapi.com/?s=${encodeURIComponent(q)}&page=${page}&apikey=${OMDB_API_KEY}`);
+    const response = await axios.get(`https://www.omdbapi.com/?s=${encodeURIComponent(q)}&page=${page}&apikey=${OMDB_API_KEY}`);
     
     if (response.data.Response === 'True') {
       // Get detailed info for each result
       const detailedResults = await Promise.all(
         response.data.Search.slice(0, 10).map(async (item) => {
           try {
-            const detailResponse = await axios.get(`http://www.omdbapi.com/?i=${item.imdbID}&apikey=${OMDB_API_KEY}`);
+            const detailResponse = await axios.get(`https://www.omdbapi.com/?i=${item.imdbID}&apikey=${OMDB_API_KEY}`);
             return detailResponse.data.Response === 'True' ? detailResponse.data : null;
           } catch (error) {
             return null;
@@ -77,7 +77,7 @@ router.get('/:imdbId', async (req, res) => {
 
     if (!movie) {
       // Fetch from OMDB API
-      const response = await axios.get(`http://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
+      const response = await axios.get(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
       
       if (response.data.Response === 'True') {
         const omdbData = response.data;
@@ -150,7 +150,7 @@ router.get('/popular/list', async (req, res) => {
     const movies = await Promise.all(
       popularImdbIds.map(async (imdbId) => {
         try {
-          const response = await axios.get(`http://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
+          const response = await axios.get(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
           return response.data.Response === 'True' ? response.data : null;
         } catch (error) {
           return null;
