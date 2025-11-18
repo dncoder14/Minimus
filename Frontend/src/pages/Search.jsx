@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import MovieCard from '../components/MovieCard'
-import { watchlistAPI, favoritesAPI } from '../services/api'
+import { watchlistAPI, favoritesAPI, moviesAPI } from '../services/api'
 
 const Search = () => {
   const [searchParams] = useSearchParams()
@@ -19,22 +19,8 @@ const Search = () => {
     setHasSearched(true)
     
     try {
-      const response = await fetch(`http://www.omdbapi.com/?s=${encodeURIComponent(searchQuery)}&apikey=c1c5dd61`)
-      const data = await response.json()
-      
-      if (data.Response === 'True') {
-        // Fetch detailed info for each result
-        const detailedResults = await Promise.all(
-          data.Search.slice(0, 20).map(async (item) => {
-            const detailResponse = await fetch(`http://www.omdbapi.com/?i=${item.imdbID}&apikey=c1c5dd61`)
-            const detailData = await detailResponse.json()
-            return detailData.Response === 'True' ? detailData : null
-          })
-        )
-        setResults(detailedResults.filter(item => item))
-      } else {
-        setResults([])
-      }
+      const response = await moviesAPI.search(searchQuery)
+      setResults(response.data.results || [])
     } catch (error) {
       console.error('Search error:', error)
       setResults([])
