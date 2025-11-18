@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { watchlistAPI, favoritesAPI, watchedAPI, reviewsAPI } from '../services/api'
+import { watchlistAPI, favoritesAPI, watchedAPI, reviewsAPI, moviesAPI } from '../services/api'
 import { 
   faStar, 
   faHeart, 
@@ -114,16 +114,9 @@ const MovieDetail = () => {
             return
           }
         } else {
-          // OMDB ID (fallback)
-          const response = await fetch(`http://www.omdbapi.com/?i=${id}&apikey=c1c5dd61`)
-          const data = await response.json()
-          
-          if (data.Response === 'True') {
-            movieData = data
-          } else {
-            setError(data.Error || 'Movie not found')
-            return
-          }
+          // OMDB ID (use backend API)
+          const response = await moviesAPI.getById(id)
+          movieData = response.data.movie
         }
         
         setMovie(movieData)
