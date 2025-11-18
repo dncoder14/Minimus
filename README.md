@@ -300,4 +300,256 @@ See [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) for detailed feature roadmap an
 
 ---
 
+## 🔧 Google OAuth Setup
+
+### Steps to Enable Google OAuth
+
+1. **Create Google Cloud Project**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select an existing one
+   - Enable the Google+ API
+
+2. **Create OAuth 2.0 Credentials**
+   - Go to **APIs & Services** > **Credentials**
+   - Click **Create Credentials** > **OAuth client ID**
+   - Select **Web application**
+   - Add authorized JavaScript origins: `http://localhost:5173`
+   - Copy the **Client ID**
+
+3. **Update Frontend Configuration**
+   - Update the Client ID in `/Frontend/src/App.jsx`
+   - Restart both backend and frontend servers
+
+## 🚀 Quick Start Commands
+
+### Backend
+```bash
+cd Backend
+npm install                 # Install dependencies
+npm run db:generate        # Generate Prisma client
+npm run db:push           # Push schema to database
+npm start                 # Start production server
+npm run dev              # Start development server
+```
+
+### Frontend
+```bash
+cd Frontend
+npm install              # Install dependencies
+npm run dev             # Start development server
+npm run build          # Build for production
+npm run preview       # Preview production build
+```
+
+## 🎯 Current Features Status
+
+### ✅ Implemented Features
+- **Authentication**: Email/Password + Google OAuth with JWT
+- **Movie Management**: Search, browse, details via OMDB API
+- **User Collections**: Watchlist, favorites, watched tracking
+- **Review System**: 1-5 star ratings with comments
+- **User Profiles**: Personal dashboard with statistics
+- **Admin Panel**: User and content management
+- **Responsive Design**: Mobile, tablet, desktop support
+- **Modern UI**: Dark theme with smooth animations
+
+### 🚧 Recommended Features to Add
+
+#### High Priority
+- [ ] Profile picture upload
+- [ ] Email verification and password reset
+- [ ] Social features (follow users, activity feed)
+- [ ] Advanced search filters (actors, directors, year range)
+- [ ] AI-powered recommendations
+- [ ] Custom movie lists
+
+#### Medium Priority
+- [ ] TV series episode tracking
+- [ ] Notifications system
+- [ ] Statistics and analytics dashboard
+- [ ] Export/import watchlist data
+- [ ] Watch provider integration
+
+#### Low Priority
+- [ ] Community features (forums, groups)
+- [ ] Gamification (achievements, badges)
+- [ ] Mobile app (React Native)
+- [ ] Offline mode support
+
+## 🗄️ Database Schema Details
+
+### Models Overview
+- **User**: Authentication and profile data
+- **Review**: Movie ratings and comments
+- **Watchlist**: Movies to watch later
+- **Favorite**: Liked movies collection
+- **Watched**: Completed movies tracking
+
+### Key Relationships
+- One user can have many reviews, watchlist items, favorites, and watched movies
+- Each review/watchlist/favorite/watched item is linked to a user and movie (IMDB ID)
+- Unique constraints prevent duplicate entries per user per movie
+
+## 🔐 Security Features
+
+- **Password Hashing**: bcrypt with 12 rounds
+- **JWT Tokens**: 7-day expiry with secure secrets
+- **CORS Configuration**: Restricted to allowed origins
+- **Input Validation**: Server-side validation for all inputs
+- **Role-based Access**: User and Admin role separation
+- **Protected Routes**: Authentication required for sensitive operations
+
+## 🎨 UI/UX Features
+
+- **Responsive Design**: Works on all device sizes
+- **Dark Theme**: Modern dark UI with gradient effects
+- **Smooth Animations**: Framer Motion for transitions
+- **Toast Notifications**: User feedback for actions
+- **Loading States**: Skeleton screens and spinners
+- **Error Handling**: Graceful error messages
+- **Accessibility**: ARIA labels and keyboard navigation
+
+## 🧪 Testing & Quality
+
+### Recommended Testing Setup
+```bash
+# Backend tests
+npm install --save-dev jest supertest
+npm test
+
+# Frontend tests
+npm install --save-dev @testing-library/react vitest
+npm run test
+
+# E2E tests
+npm install --save-dev cypress
+npm run test:e2e
+```
+
+### Code Quality Tools
+- **ESLint**: Code linting and error detection
+- **Prettier**: Code formatting
+- **Husky**: Git hooks for pre-commit checks
+- **TypeScript**: Type safety (recommended upgrade)
+
+## 🚀 Performance Optimization
+
+### Current Optimizations
+- **Code Splitting**: Route-based lazy loading ready
+- **Image Optimization**: Placeholder images and lazy loading
+- **Bundle Optimization**: Vite for fast builds
+- **API Caching**: Ready for Redis implementation
+
+### Recommended Improvements
+- **React Query**: Better data fetching and caching
+- **Service Worker**: PWA capabilities
+- **CDN Integration**: Static asset delivery
+- **Database Indexing**: Optimized queries
+
+## 🔄 Development Workflow
+
+### Git Workflow
+```bash
+# Feature development
+git checkout -b feature/feature-name
+git add .
+git commit -m "feat: Add new feature"
+git push origin feature/feature-name
+
+# Bug fixes
+git checkout -b bugfix/bug-description
+git commit -m "fix: Fix bug description"
+```
+
+### Commit Message Convention
+- `feat:` New features
+- `fix:` Bug fixes
+- `docs:` Documentation updates
+- `style:` Code formatting
+- `refactor:` Code restructuring
+- `test:` Adding tests
+- `chore:` Maintenance tasks
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Backend port already in use:**
+```bash
+lsof -ti:3001 | xargs kill -9
+```
+
+**Database connection error:**
+- Check MySQL is running
+- Verify DATABASE_URL in .env file
+- Run `npm run db:push` to sync schema
+
+**Frontend build errors:**
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+**API connection issues:**
+- Ensure backend is running on port 3001
+- Check CORS settings in server.js
+- Verify API_BASE_URL in frontend services
+
+## 📊 Project Statistics
+
+### Backend
+- **API Endpoints**: ~40 endpoints across 7 route files
+- **Database Models**: 5 Prisma models
+- **Middleware**: Authentication and CORS
+- **External APIs**: OMDB for movie data
+
+### Frontend
+- **Pages**: 8 main pages
+- **Components**: 5 reusable components
+- **Styling**: Tailwind CSS with custom theme
+- **State Management**: React hooks and context
+
+## 🔮 Future Roadmap
+
+### Phase 1 (Month 1-2)
+- User profile enhancements
+- Email verification system
+- Advanced search functionality
+- Social features foundation
+
+### Phase 2 (Month 3-4)
+- Recommendation engine
+- TV series episode tracking
+- Notifications system
+- Mobile responsiveness improvements
+
+### Phase 3 (Month 5-6)
+- Community features
+- Analytics dashboard
+- Performance optimizations
+- Mobile app development
+
+### Phase 4 (Month 7-8)
+- Advanced admin features
+- API rate limiting
+- Comprehensive testing
+- Production deployment optimization
+
+## 📞 Support & Maintenance
+
+### Regular Tasks
+- Weekly database backups
+- Monthly security updates
+- Quarterly dependency updates
+- Monitor API rate limits and usage
+- Review error logs and user feedback
+
+### Monitoring Setup
+- **Uptime Monitoring**: Track application availability
+- **Error Tracking**: Log and alert on errors
+- **Performance Monitoring**: Track response times
+- **User Analytics**: Understand user behavior
+
+---
+
 **Made with ❤️ by Dhiraj Pandit**
