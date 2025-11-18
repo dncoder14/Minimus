@@ -10,7 +10,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -30,7 +30,7 @@ model User {
 model Review {
   id        Int      @id @default(autoincrement())
   imdbId    String   // IMDB ID reference
-  rating    Int      @db.TinyInt // 1-5 stars
+  rating    Int      // 1-5 stars
   comment   String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
