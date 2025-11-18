@@ -1,0 +1,16 @@
+{
+  "name": "Minimus - Movie Discovery Platform",
+  "short_name": "Minimus",
+  "description": "Discover, explore, and track your favorite movies and TV series",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#ef4444",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
