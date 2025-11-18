@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { watchlistAPI, favoritesAPI, watchedAPI, reviewsAPI } from '../services/api'
+import { watchlistAPI, favoritesAPI, watchedAPI, reviewsAPI, moviesAPI } from '../services/api'
 import { 
   faUser, 
   faHeart, 
@@ -43,9 +43,8 @@ const Profile = ({ user }) => {
           Type: 'movie'
         } : null
       } else {
-        const response = await fetch(`http://www.omdbapi.com/?i=${imdbId}&apikey=c1c5dd61`)
-        const data = await response.json()
-        return data.Response === 'True' ? data : null
+        const response = await moviesAPI.getById(imdbId)
+        return response.data.movie
       }
     } catch (error) {
       console.error('Error fetching movie details:', error)
