@@ -1,0 +1,99 @@
+/* Watchlist.css */
+.watchlist-container {
+  padding: 2rem;
+  background-color: #f7f7f7;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.watchlist-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.watchlist-empty {
+  font-size: 1.2rem;
+  color: #777;
+  text-align: center;
+}
+
+.watchlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  width: 90%;
+  max-width: 1200px;
+}
+
+.watchlist-item {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease-in-out;
+}
+
+.watchlist-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.watchlist-item-image {
+  width: 100%;
+  aspect-ratio: 2 / 3; /* Maintain a good aspect ratio for posters */
+  overflow: hidden;
+}
+
+.watchlist-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.watchlist-item-details {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-grow: 1;
+}
+
+.watchlist-item-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.watchlist-item-genres {
+  font-size: 0.9rem;
+  color: #777;
+  margin-bottom: 0.75rem;
+}
+
+.watchlist-remove-button {
+  background-color: #e53e3e; /* A more modern red */
+  color: white;
+  padding: 0.75rem 1rem;
+  margin-left: 10px;
+    margin-bottom: 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  align-self: flex-start; /* Align button to the start of the container */
+  margin-top: 0.5rem;
+}
+
+.watchlist-remove-button:hover {
+  background-color: #c53030; /* Darker red on hover */
+}
