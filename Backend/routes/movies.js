@@ -53,86 +53,14 @@ router.get('/:imdbId', async (req, res) => {
   try {
     const { imdbId } = req.params;
 
-    // Check if movie exists in database
-    let movie = await prisma.movie.findUnique({
-      where: { imdbId },
-      include: {
-        reviews: {
-          include: {
-            user: {
-              select: { id: true, name: true }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        },
-        _count: {
-          select: {
-            reviews: true,
-            watchlists: true,
-            favorites: true
-          }
-        }
-      }
-    });
-
-    if (!movie) {
-      // Fetch from OMDB API
-      const response = await axios.get(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
-      
-      if (response.data.Response === 'True') {
-        const omdbData = response.data;
-        
-        // Save to database
-        movie = await prisma.movie.create({
-          data: {
-            imdbId: omdbData.imdbID,
-            title: omdbData.Title,
-            year: omdbData.Year,
-            rated: omdbData.Rated !== 'N/A' ? omdbData.Rated : null,
-            released: omdbData.Released !== 'N/A' ? omdbData.Released : null,
-            runtime: omdbData.Runtime !== 'N/A' ? omdbData.Runtime : null,
-            genre: omdbData.Genre !== 'N/A' ? omdbData.Genre : '',
-            director: omdbData.Director !== 'N/A' ? omdbData.Director : null,
-            writer: omdbData.Writer !== 'N/A' ? omdbData.Writer : null,
-            actors: omdbData.Actors !== 'N/A' ? omdbData.Actors : null,
-            plot: omdbData.Plot !== 'N/A' ? omdbData.Plot : null,
-            language: omdbData.Language !== 'N/A' ? omdbData.Language : null,
-            country: omdbData.Country !== 'N/A' ? omdbData.Country : null,
-            awards: omdbData.Awards !== 'N/A' ? omdbData.Awards : null,
-            poster: omdbData.Poster !== 'N/A' ? omdbData.Poster : null,
-            imdbRating: omdbData.imdbRating !== 'N/A' ? omdbData.imdbRating : null,
-            imdbVotes: omdbData.imdbVotes !== 'N/A' ? omdbData.imdbVotes : null,
-            type: omdbData.Type,
-            boxOffice: omdbData.BoxOffice !== 'N/A' ? omdbData.BoxOffice : null,
-            production: omdbData.Production !== 'N/A' ? omdbData.Production : null,
-            website: omdbData.Website !== 'N/A' ? omdbData.Website : null
-          },
-          include: {
-            reviews: {
-              include: {
-                user: {
-                  select: { id: true, name: true }
-                }
-              }
-            },
-            _count: {
-              select: {
-                reviews: true,
-                watchlists: true,
-                favorites: true
-              }
-            }
-          }
-        });
-
-        // Add OMDB ratings data
-        movie.omdbRatings = omdbData.Ratings || [];
-      } else {
-        return res.status(404).json({ error: 'Movie not found' });
-      }
+    // Fetch from OMDB API
+    const response = await axios.get(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
+    
+    if (response.data.Response === 'True') {
+      res.json({ movie: response.data });
+    } else {
+      return res.status(404).json({ error: 'Movie not found' });
     }
-
-    res.json({ movie });
   } catch (error) {
     console.error('Get movie error:', error);
     res.status(500).json({ error: 'Failed to fetch movie' });
@@ -176,23 +104,8 @@ router.get('/type/:type', async (req, res) => {
       return res.status(400).json({ error: 'Invalid type. Use movie or series' });
     }
 
-    const movies = await prisma.movie.findMany({
-      where: { type },
-      include: {
-        _count: {
-          select: {
-            reviews: true,
-            watchlists: true,
-            favorites: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-      skip: (page - 1) * 20
-    });
-
-    res.json({ movies, page: parseInt(page) });
+    // For now, return empty array since we don't have movie storage
+    res.json({ movies: [], page: parseInt(page) });
   } catch (error) {
     console.error('Get movies by type error:', error);
     res.status(500).json({ error: 'Failed to fetch movies' });
