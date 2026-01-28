@@ -115,8 +115,6 @@ npm run dev
 - **Favorite**: User's favorite movies/series
 - **Watched**: Tracking of watched content
 
-See [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) for detailed schema information.
-
 ## API Documentation
 
 ### Authentication Endpoints
@@ -284,8 +282,6 @@ This project is licensed under the ISC License.
 For support, email dhirajpandit5050@example.com or open an issue in the repository.
 
 ## Roadmap
-
-See [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) for detailed feature roadmap and recommendations.
 
 ### Upcoming Features
 - Social features (follow users, activity feed)
