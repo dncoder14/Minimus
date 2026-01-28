@@ -1,12 +1,10 @@
-# 🎬 Minimus - Your Ultimate Entertainment Universe
+# Minimus - Your Ultimate Entertainment Universe
 
 A modern, full-stack movie and TV series tracking application built with React, Node.js, and MySQL.
 
-![Minimus Banner](https://via.placeholder.com/1200x400/0A1B2F/FFFFFF?text=Minimus+-+Entertainment+Tracker)
+## Features
 
-## ✨ Features
-
-### 🎯 Core Features
+### Core Features
 - **Discover Movies & Series**: Browse millions of movies and TV shows from OMDB and TMDB APIs
 - **Smart Search**: Real-time search with advanced filters (genre, year, rating)
 - **Personal Collections**: Create watchlists, mark favorites, and track watched content
@@ -14,20 +12,20 @@ A modern, full-stack movie and TV series tracking application built with React, 
 - **User Profiles**: Personalized dashboard with viewing statistics
 - **Admin Panel**: Comprehensive admin dashboard for user and content management
 
-### 🔐 Authentication
+### Authentication
 - Email/Password authentication with JWT
 - Google OAuth 2.0 integration
 - Secure password hashing with bcrypt
 - Role-based access control (User/Admin)
 
-### 🎨 UI/UX
+### UI/UX
 - Fully responsive design (mobile, tablet, desktop)
 - Modern dark theme with gradient effects
 - Smooth animations with Framer Motion
 - Toast notifications for user feedback
 - Loading states and skeleton screens
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend
 - **Runtime**: Node.js
@@ -44,7 +42,7 @@ A modern, full-stack movie and TV series tracking application built with React, 
 - **Animations**: Framer Motion v12.9.2
 - **HTTP Client**: Axios v1.8.4
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 - Node.js (v18 or higher)
@@ -108,7 +106,7 @@ npm run dev
 
 5. Open your browser and visit: `http://localhost:5173`
 
-## 🗄️ Database Schema
+## Database Schema
 
 ### Models
 - **User**: User accounts with authentication
@@ -119,7 +117,7 @@ npm run dev
 
 See [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) for detailed schema information.
 
-## 📚 API Documentation
+## API Documentation
 
 ### Authentication Endpoints
 ```
@@ -183,7 +181,7 @@ GET    /api/admin/reviews      - Get all reviews
 DELETE /api/admin/reviews/:id  - Delete review
 ```
 
-## 🚀 Deployment
+## Deployment
 
 ### Backend Deployment (Heroku/Railway)
 1. Set environment variables
@@ -195,7 +193,7 @@ DELETE /api/admin/reviews/:id  - Delete review
 2. Deploy the `dist` folder
 3. Set environment variables
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Backend tests
@@ -207,7 +205,7 @@ cd Frontend
 npm test
 ```
 
-## 📝 Project Structure
+## Project Structure
 
 ```
 Minimus/
@@ -256,7 +254,7 @@ Minimus/
 └── README.md
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -266,41 +264,41 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the ISC License.
 
-## 👤 Author
+## Author
 
 **Dhiraj Pandit**
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [OMDB API](http://www.omdbapi.com/) for movie data
 - [TMDB API](https://www.themoviedb.org/) for additional movie information
 - [Font Awesome](https://fontawesome.com/) for icons
 - [Tailwind CSS](https://tailwindcss.com/) for styling
 
-## 📞 Support
+## Support
 
 For support, email dhirajpandit5050@example.com or open an issue in the repository.
 
-## 🗺️ Roadmap
+## Roadmap
 
 See [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) for detailed feature roadmap and recommendations.
 
 ### Upcoming Features
-- [ ] Social features (follow users, activity feed)
-- [ ] Advanced recommendations with AI
-- [ ] TV series episode tracking
-- [ ] Watch provider integration
-- [ ] Mobile app (React Native)
-- [ ] Offline mode
-- [ ] Dark/Light theme toggle
+- Social features (follow users, activity feed)
+- Advanced recommendations with AI
+- TV series episode tracking
+- Watch provider integration
+- Mobile app (React Native)
+- Offline mode
+- Dark/Light theme toggle
 
 ---
 
-## 🔧 Google OAuth Setup
+## Google OAuth Setup
 
 ### Steps to Enable Google OAuth
 
@@ -320,7 +318,7 @@ See [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) for detailed feature roadmap an
    - Update the Client ID in `/Frontend/src/App.jsx`
    - Restart both backend and frontend servers
 
-## 🚀 Quick Start Commands
+## Quick Start Commands
 
 ### Backend
 ```bash
@@ -341,9 +339,9 @@ npm run build          # Build for production
 npm run preview       # Preview production build
 ```
 
-## 🎯 Current Features Status
+## Current Features Status
 
-### ✅ Implemented Features
+### Implemented Features
 - **Authentication**: Email/Password + Google OAuth with JWT
 - **Movie Management**: Search, browse, details via OMDB API
 - **User Collections**: Watchlist, favorites, watched tracking
@@ -353,30 +351,30 @@ npm run preview       # Preview production build
 - **Responsive Design**: Mobile, tablet, desktop support
 - **Modern UI**: Dark theme with smooth animations
 
-### 🚧 Recommended Features to Add
+### Recommended Features to Add
 
 #### High Priority
-- [ ] Profile picture upload
-- [ ] Email verification and password reset
-- [ ] Social features (follow users, activity feed)
-- [ ] Advanced search filters (actors, directors, year range)
-- [ ] AI-powered recommendations
-- [ ] Custom movie lists
+- Profile picture upload
+- Email verification and password reset
+- Social features (follow users, activity feed)
+- Advanced search filters (actors, directors, year range)
+- AI-powered recommendations
+- Custom movie lists
 
 #### Medium Priority
-- [ ] TV series episode tracking
-- [ ] Notifications system
-- [ ] Statistics and analytics dashboard
-- [ ] Export/import watchlist data
-- [ ] Watch provider integration
+- TV series episode tracking
+- Notifications system
+- Statistics and analytics dashboard
+- Export/import watchlist data
+- Watch provider integration
 
 #### Low Priority
-- [ ] Community features (forums, groups)
-- [ ] Gamification (achievements, badges)
-- [ ] Mobile app (React Native)
-- [ ] Offline mode support
+- Community features (forums, groups)
+- Gamification (achievements, badges)
+- Mobile app (React Native)
+- Offline mode support
 
-## 🗄️ Database Schema Details
+## Database Schema Details
 
 ### Models Overview
 - **User**: Authentication and profile data
@@ -390,7 +388,7 @@ npm run preview       # Preview production build
 - Each review/watchlist/favorite/watched item is linked to a user and movie (IMDB ID)
 - Unique constraints prevent duplicate entries per user per movie
 
-## 🔐 Security Features
+## Security Features
 
 - **Password Hashing**: bcrypt with 12 rounds
 - **JWT Tokens**: 7-day expiry with secure secrets
@@ -399,7 +397,7 @@ npm run preview       # Preview production build
 - **Role-based Access**: User and Admin role separation
 - **Protected Routes**: Authentication required for sensitive operations
 
-## 🎨 UI/UX Features
+## UI/UX Features
 
 - **Responsive Design**: Works on all device sizes
 - **Dark Theme**: Modern dark UI with gradient effects
@@ -409,7 +407,7 @@ npm run preview       # Preview production build
 - **Error Handling**: Graceful error messages
 - **Accessibility**: ARIA labels and keyboard navigation
 
-## 🧪 Testing & Quality
+## Testing & Quality
 
 ### Recommended Testing Setup
 ```bash
@@ -432,7 +430,7 @@ npm run test:e2e
 - **Husky**: Git hooks for pre-commit checks
 - **TypeScript**: Type safety (recommended upgrade)
 
-## 🚀 Performance Optimization
+## Performance Optimization
 
 ### Current Optimizations
 - **Code Splitting**: Route-based lazy loading ready
@@ -446,7 +444,7 @@ npm run test:e2e
 - **CDN Integration**: Static asset delivery
 - **Database Indexing**: Optimized queries
 
-## 🔄 Development Workflow
+## Development Workflow
 
 ### Git Workflow
 ```bash
@@ -470,7 +468,7 @@ git commit -m "fix: Fix bug description"
 - `test:` Adding tests
 - `chore:` Maintenance tasks
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -495,7 +493,7 @@ npm install
 - Check CORS settings in server.js
 - Verify API_BASE_URL in frontend services
 
-## 📊 Project Statistics
+## Project Statistics
 
 ### Backend
 - **API Endpoints**: ~40 endpoints across 7 route files
@@ -509,7 +507,7 @@ npm install
 - **Styling**: Tailwind CSS with custom theme
 - **State Management**: React hooks and context
 
-## 🔮 Future Roadmap
+## Future Roadmap
 
 ### Phase 1 (Month 1-2)
 - User profile enhancements
@@ -535,7 +533,7 @@ npm install
 - Comprehensive testing
 - Production deployment optimization
 
-## 📞 Support & Maintenance
+## Support & Maintenance
 
 ### Regular Tasks
 - Weekly database backups
@@ -552,4 +550,4 @@ npm install
 
 ---
 
-**Made with ❤️ by Dhiraj Pandit**
+**Made with love by Dhiraj Pandit**
