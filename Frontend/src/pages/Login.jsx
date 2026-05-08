@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import toast from 'react-hot-toast'
@@ -20,7 +20,23 @@ const Login = ({ setUser }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [loadingMessage, setLoadingMessage] = useState(null)
+  const timersRef = useRef([])
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (loading) {
+      setLoadingMessage(null)
+      timersRef.current = [
+        setTimeout(() => setLoadingMessage('slow'), 15000),
+        setTimeout(() => setLoadingMessage('timeout'), 120000)
+      ]
+    } else {
+      timersRef.current.forEach(clearTimeout)
+      setLoadingMessage(null)
+    }
+    return () => timersRef.current.forEach(clearTimeout)
+  }, [loading])
 
   const handleChange = (e) => {
     setFormData({
@@ -46,10 +62,13 @@ const Login = ({ setUser }) => {
       localStorage.setItem('user', JSON.stringify(user))
       
       setUser(user)
-      navigate('/')
+      navigate('/dashboard')
     } catch (error) {
-      setError(error.response?.data?.error || 'Login failed')
-    } finally {
+      if (!error.response) {
+        setError('Unable to reach the server. Please check your connection or try again later.')
+      } else {
+        setError(error.response?.data?.error || 'Login failed')
+      }
       setLoading(false)
     }
   }
@@ -67,7 +86,7 @@ const Login = ({ setUser }) => {
       
       setUser(user)
       toast.success('Login successful!')
-      navigate('/')
+      navigate('/dashboard')
     } catch (error) {
       toast.error('Google authentication failed')
     } finally {
@@ -193,6 +212,12 @@ const Login = ({ setUser }) => {
                 </>
               )}
             </button>
+            {loadingMessage === 'slow' && (
+              <p className="text-center text-sm text-gray-400">Free hosting services take time to start up. Please wait...</p>
+            )}
+            {loadingMessage === 'timeout' && (
+              <p className="text-center text-sm text-red-400">Server seems unavailable. Please try again after some time.</p>
+            )}
 
             {/* Divider */}
             <div className="relative">
