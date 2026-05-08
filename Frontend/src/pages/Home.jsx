@@ -19,25 +19,37 @@ const Home = () => {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ movies: 0, series: 0, users: 0 })
   const [heroPosters, setHeroPosters] = useState([])
+  const [loadingMessage, setLoadingMessage] = useState(null)
   const carouselRef = useRef(null)
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setLoadingMessage('slow'), 15000)
+    const t2 = setTimeout(() => setLoadingMessage('timeout'), 120000)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [])
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [page1, page2, statsRes] = await Promise.all([
+        const [page1, page2] = await Promise.all([
           fetch('https://api.themoviedb.org/3/movie/popular?api_key=3757ac660ffc9e9bc47412ea8c89e23c&page=1'),
           fetch('https://api.themoviedb.org/3/trending/all/week?api_key=3757ac660ffc9e9bc47412ea8c89e23c'),
-          import('../services/api').then(({ authAPI }) => authAPI.getStats())
         ])
         const [data1, data2] = await Promise.all([page1.json(), page2.json()])
         setHeroPosters([...(data1.results?.slice(0, 10) || []), ...(data2.results?.slice(0, 10) || [])])
-        
-        // Animate stats counter
+      } catch (error) {
+        console.error('Error fetching posters:', error)
+      } finally {
+        setLoading(false)
+      }
+
+      // Fetch stats separately — don't block the spinner on this
+      try {
+        const { authAPI } = await import('../services/api')
+        const statsRes = await authAPI.getStats()
         const targets = { movies: 500000, series: 100000, users: statsRes.data.userCount }
-        const duration = 2000
         const steps = 60
-        const stepTime = duration / steps
-        
+        const stepTime = 2000 / steps
         let step = 0
         const timer = setInterval(() => {
           step++
@@ -47,13 +59,10 @@ const Home = () => {
             series: Math.floor(targets.series * progress),
             users: Math.floor(targets.users * progress)
           })
-          
           if (step >= steps) clearInterval(timer)
         }, stepTime)
       } catch (error) {
-        console.error('Error fetching data:', error)
-      } finally {
-        setLoading(false)
+        console.error('Error fetching stats:', error)
       }
     }
 
@@ -61,6 +70,23 @@ const Home = () => {
   }, [])
 
 
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #0A1B2F 0%, #05080E 100%)' }}>
+        <div className="flex flex-col items-center space-y-4 max-w-sm text-center px-4">
+          <div className="w-16 h-16 rounded-full border-4 border-white/10 border-t-cyan-400 animate-spin"></div>
+          <p className="text-gray-400 text-sm tracking-widest uppercase">Loading</p>
+          {loadingMessage === 'slow' && (
+            <p className="text-gray-400 text-sm mt-2">Free hosting services take time to start up. Please wait...</p>
+          )}
+          {loadingMessage === 'timeout' && (
+            <p className="text-red-400 text-sm mt-2">The server seems to be unavailable. Please try again after some time.</p>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0A1B2F 0%, #05080E 100%)' }}>
@@ -323,7 +349,7 @@ const Home = () => {
             
             <div className="border-t border-white/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
               <p className="text-gray-400 text-base">
-                © 2024 Minimus. Made with <span className="text-pink-400">❤️</span> for entertainment lovers.
+                © 2024 Minimus.
               </p>
               <p className="text-gray-500 text-sm mt-4 md:mt-0">
                 Powered by TMDB API
