@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { Toaster } from 'react-hot-toast'
@@ -65,9 +65,9 @@ function App() {
           <Navbar user={user} setUser={setUser} />
           <main className="relative z-10">
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login setUser={setUser} />} />
-              <Route path="/signup" element={<Signup setUser={setUser} />} />
+              <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
+              <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login setUser={setUser} />} />
+              <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup setUser={setUser} />} />
               <Route path="/dashboard" element={<ProtectedRoute user={user}><Dashboard /></ProtectedRoute>} />
               <Route path="/movies" element={<ProtectedRoute user={user}><Movies /></ProtectedRoute>} />
               <Route path="/series" element={<ProtectedRoute user={user}><Series /></ProtectedRoute>} />
