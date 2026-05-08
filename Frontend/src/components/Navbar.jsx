@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
@@ -18,6 +18,14 @@ const Navbar = ({ user, setUser }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const navLinkClass = (path) =>
+    `px-4 py-2 rounded-full transition-all ${
+      location.pathname === path
+        ? 'text-cyan-400 bg-white/10'
+        : 'text-cinematic-text hover:bg-white/10'
+    }`
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -49,15 +57,15 @@ const Navbar = ({ user, setUser }) => {
           {/* Desktop Navigation */}
           {user && (
             <div className="hidden md:flex items-center space-x-2">
-              <Link to="/dashboard" className="px-4 py-2 rounded-full text-cinematic-text hover:bg-white/10 transition-all">
+              <Link to="/dashboard" className={navLinkClass('/dashboard')}>
                 <FontAwesomeIcon icon={faChartLine} className="mr-2" />
                 Dashboard
               </Link>
-              <Link to="/movies" className="px-4 py-2 rounded-full text-cinematic-text hover:bg-white/10 transition-all">
+              <Link to="/movies" className={navLinkClass('/movies')}>
                 <FontAwesomeIcon icon={faFilm} className="mr-2" />
                 Movies
               </Link>
-              <Link to="/series" className="px-4 py-2 rounded-full text-cinematic-text hover:bg-white/10 transition-all">
+              <Link to="/series" className={navLinkClass('/series')}>
                 <FontAwesomeIcon icon={faTv} className="mr-2" />
                 Series
               </Link>
@@ -145,15 +153,15 @@ const Navbar = ({ user, setUser }) => {
                 </div>
               </form>
               
-              <Link to="/dashboard" className="flex items-center space-x-2 py-2 text-cinematic-text hover:text-electric-blue transition-colors">
+              <Link to="/dashboard" className={`flex items-center space-x-2 py-2 transition-colors ${location.pathname === '/dashboard' ? 'text-cyan-400' : 'text-cinematic-text hover:text-electric-blue'}`}>
                 <FontAwesomeIcon icon={faChartLine} />
                 <span>Dashboard</span>
               </Link>
-              <Link to="/movies" className="flex items-center space-x-2 py-2 text-cinematic-text hover:text-electric-blue transition-colors">
+              <Link to="/movies" className={`flex items-center space-x-2 py-2 transition-colors ${location.pathname === '/movies' ? 'text-cyan-400' : 'text-cinematic-text hover:text-electric-blue'}`}>
                 <FontAwesomeIcon icon={faFilm} />
                 <span>Movies</span>
               </Link>
-              <Link to="/series" className="flex items-center space-x-2 py-2 text-cinematic-text hover:text-electric-blue transition-colors">
+              <Link to="/series" className={`flex items-center space-x-2 py-2 transition-colors ${location.pathname === '/series' ? 'text-cyan-400' : 'text-cinematic-text hover:text-electric-blue'}`}>
                 <FontAwesomeIcon icon={faTv} />
                 <span>Series</span>
               </Link>
