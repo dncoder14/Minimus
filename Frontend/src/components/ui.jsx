@@ -48,9 +48,11 @@ export const SectionHeader = ({ title, subtitle, action }) => (
   </div>
 )
 
-export const GRID = 'grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
+// Pages hold 18 titles (and the dashboard 12), so columns are 2, 3 and 6: all divide both counts
+// and the last row is always full.
+export const GRID = 'grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 xl:grid-cols-6'
 
-export const PosterSkeleton = ({ count = 10 }) => (
+export const PosterSkeleton = ({ count = 12 }) => (
   <div className={GRID}>
     {Array.from({ length: count }).map((_, i) => (
       <div key={i} className="animate-pulse">

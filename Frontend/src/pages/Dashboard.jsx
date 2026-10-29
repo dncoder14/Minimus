@@ -90,7 +90,7 @@ const Dashboard = () => {
           ))}
         </div>
         {loading || genreLoading ? (
-          <PosterSkeleton count={10} />
+          <PosterSkeleton count={12} />
         ) : (
           <div className={GRID}>
             {genreItems.slice(0, 12).map((item) => (

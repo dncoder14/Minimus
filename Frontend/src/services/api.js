@@ -32,6 +32,11 @@ export const tmdb = {
   get: (path, params = {}) => api.get(`/tmdb${path}`, { params }).then((res) => res.data),
 };
 
+// Paged browsing with our own page size (the backend stitches TMDB's fixed 20-title pages)
+export const catalogAPI = {
+  discover: (kind, params) => api.get(`/discover/${kind}`, { params }).then((res) => res.data),
+};
+
 // Movies API
 export const moviesAPI = {
   getBatch: (ids) => api.post('/movies/batch', { ids }),
