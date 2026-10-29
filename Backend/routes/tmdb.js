@@ -22,8 +22,10 @@ router.get(
 
     const { api_key, ...params } = req.query; // never forward a client-supplied key
     try {
+      const data = await metadata.tmdbCached(req.path, params);
+      // Only successful responses are cacheable; an error must never be cached by the browser
       res.set('Cache-Control', 'public, max-age=300');
-      res.json(await metadata.tmdbCached(req.path, params));
+      res.json(data);
     } catch (err) {
       if (err instanceof HttpError) throw err;
       const status = err.response?.status;
