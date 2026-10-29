@@ -2,8 +2,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useState, useEffect } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { Toaster } from 'react-hot-toast'
-import Navbar from './components/Navbar'
+import AppShell from './components/AppShell'
 import ProtectedRoute from './components/ProtectedRoute'
+import { Spinner } from './components/ui'
+import { LibraryProvider } from './context/LibraryContext'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import Movies from './pages/Movies'
@@ -14,71 +16,83 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Profile from './pages/Profile'
 import Community from './pages/Community'
-import './App.css'
+
+const GOOGLE_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID || '637148170835-9gffvr77r5o2a4vhqs7e7kn46g19k6fe.apps.googleusercontent.com'
+
+const toastOptions = {
+  duration: 3000,
+  style: {
+    background: '#1D1D26',
+    color: '#F4F4F5',
+    border: '1px solid #292932',
+    borderRadius: '10px',
+    fontSize: '14px',
+  },
+  success: { iconTheme: { primary: '#FFC247', secondary: '#0B0B0F' } },
+  error: { iconTheme: { primary: '#F97316', secondary: '#0B0B0F' } },
+}
 
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing authentication
+    // Restore the session and confirm the token is still valid
     const token = localStorage.getItem('token')
-    const userData = localStorage.getItem('user')
-    
-    if (token && userData) {
-      try {
-        JSON.parse(userData) // throws on corrupt data, handled below
-        // Verify token is still valid by making API call
-        import('./services/api').then(({ authAPI }) => {
-          authAPI.getProfile()
-            .then(response => {
-              setUser(response.data.user)
-            })
-            .catch(() => {
-              // Token invalid, clear storage
-              localStorage.removeItem('token')
-              localStorage.removeItem('user')
-            })
-            .finally(() => setLoading(false))
-        })
-        return
-      } catch {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-      }
+    if (!token) {
+      setLoading(false)
+      return
     }
-    setLoading(false)
+    import('./services/api').then(({ authAPI }) => {
+      authAPI
+        .getProfile()
+        .then((response) => setUser(response.data.user))
+        .catch(() => {
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+        })
+        .finally(() => setLoading(false))
+    })
   }, [])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="text-electric-blue text-xl font-serif">Loading...</div>
+      <div className="min-h-screen bg-obsidian">
+        <Spinner />
       </div>
     )
   }
 
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || '637148170835-9gffvr77r5o2a4vhqs7e7kn46g19k6fe.apps.googleusercontent.com'}>
-      <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#1f2937', color: '#fff', border: '1px solid rgba(14, 165, 233, 0.3)' }, success: { iconTheme: { primary: '#10b981', secondary: '#fff' } }, error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } } }} />
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <Toaster position="top-right" toastOptions={toastOptions} />
       <Router>
-        <div className="min-h-screen text-cinematic-text relative" style={{ background: 'linear-gradient(180deg, #0A1B2F 0%, #05080E 100%)' }}>
-          <Navbar user={user} setUser={setUser} />
-          <main className="relative z-10">
-            <Routes>
-              <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
-              <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login setUser={setUser} />} />
-              <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup setUser={setUser} />} />
-              <Route path="/dashboard" element={<ProtectedRoute user={user}><Dashboard /></ProtectedRoute>} />
-              <Route path="/movies" element={<ProtectedRoute user={user}><Movies /></ProtectedRoute>} />
-              <Route path="/series" element={<ProtectedRoute user={user}><Series /></ProtectedRoute>} />
-              <Route path="/search" element={<ProtectedRoute user={user}><Search /></ProtectedRoute>} />
-              <Route path="/movie/:id" element={<ProtectedRoute user={user}><MovieDetail /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute user={user}><Profile user={user} /></ProtectedRoute>} />
-              <Route path="/community" element={<ProtectedRoute user={user}><Community /></ProtectedRoute>} />
-            </Routes>
-          </main>
-        </div>
+        <LibraryProvider user={user}>
+          <Routes>
+            <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
+            <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login setUser={setUser} />} />
+            <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup setUser={setUser} />} />
+
+            <Route
+              element={
+                <ProtectedRoute user={user}>
+                  <AppShell user={user} setUser={setUser} />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/dashboard" element={<Dashboard user={user} />} />
+              <Route path="/movies" element={<Movies />} />
+              <Route path="/series" element={<Series />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/movie/:id" element={<MovieDetail user={user} />} />
+              <Route path="/profile" element={<Profile user={user} />} />
+              <Route path="/community" element={<Community />} />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </LibraryProvider>
       </Router>
     </GoogleOAuthProvider>
   )
