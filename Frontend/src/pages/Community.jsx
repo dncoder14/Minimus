@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSearch, faStar, faUser } from '@fortawesome/free-solid-svg-icons'
+import { faMagnifyingGlass, faUserGroup } from '@fortawesome/free-solid-svg-icons'
 import toast from 'react-hot-toast'
 import { socialAPI } from '../services/api'
+import { EmptyState, PageHeader, Rating, cx } from '../components/ui'
 
 // "reviewed, favorited and watched" style sentence from a card's actions
 const describe = (actions) => {
@@ -11,6 +12,12 @@ const describe = (actions) => {
   const list = order.filter((a) => actions.includes(a))
   return list.length > 1 ? `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}` : list[0]
 }
+
+const Avatar = ({ name }) => (
+  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-elevated text-sm font-semibold">
+    {name.charAt(0).toUpperCase()}
+  </span>
+)
 
 const Community = () => {
   const [feed, setFeed] = useState([])
@@ -36,7 +43,7 @@ const Community = () => {
     loadFeed()
   }, [])
 
-  // Search as the user types (debounced); Enter still works through the form
+  // Search as the user types (debounced)
   useEffect(() => {
     const term = query.trim()
     if (!term) {
@@ -68,56 +75,53 @@ const Community = () => {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-12">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-8">
-        <section className="md:col-span-2">
-          <h1 className="text-3xl font-bold text-white mb-6">Activity from people you follow</h1>
+    <div className="animate-fade-in">
+      <PageHeader title="Community" subtitle="See what people you follow are watching and reviewing" />
+
+      <div className="grid gap-8 lg:grid-cols-3">
+        <section className="lg:col-span-2">
+          <h2 className="mb-4 text-lg font-semibold">Activity</h2>
 
           {feedLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-gray-800 rounded-xl animate-pulse" />
+                <div key={i} className="h-28 animate-pulse rounded-card bg-surface" />
               ))}
             </div>
           ) : feed.length === 0 ? (
-            <div className="bg-gray-800 rounded-xl p-8 text-center text-gray-400">
-              {following === 0
-                ? 'You are not following anyone yet. Find people with the search box.'
-                : 'No recent activity from the people you follow.'}
-            </div>
+            <EmptyState icon={faUserGroup} title={following === 0 ? 'You are not following anyone yet' : 'No recent activity'}>
+              {following === 0 ? 'Search for people on the right and follow them to fill your feed.' : 'Their reviews and favorites will appear here.'}
+            </EmptyState>
           ) : (
             <ul className="space-y-3">
               {feed.map((item, i) => (
-                <li key={`${item.imdbId}-${item.user.id}-${i}`} className="bg-gray-800 rounded-xl p-4 flex gap-4">
-                  <Link to={`/movie/${item.imdbId}`} className="shrink-0">
-                    <img
-                      src={item.movie?.poster || '/placeholder-movie.svg'}
-                      alt={item.movie?.title || 'Poster'}
-                      className="w-14 h-20 object-cover rounded-md"
-                    />
+                <li key={`${item.imdbId}-${item.user.id}-${i}`} className="card flex gap-4 p-4">
+                  <Link to={`/movie/${item.imdbId}`} className="w-16 shrink-0 sm:w-20">
+                    <div className="aspect-[2/3] overflow-hidden rounded-control border border-line bg-elevated">
+                      {item.movie?.poster && <img src={item.movie.poster} alt={item.movie?.title} className="h-full w-full object-cover" />}
+                    </div>
                   </Link>
-                  <div className="min-w-0">
-                    <p className="text-gray-300">
-                      <span className="font-semibold text-white">{item.user.name}</span> {describe(item.actions)}{' '}
-                      <Link to={`/movie/${item.imdbId}`} className="text-cyan-400 hover:underline">
-                        {item.movie?.title || item.imdbId}
-                      </Link>
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={item.user.name} />
+                      <p className="text-sm text-muted">
+                        <span className="font-semibold text-ink">{item.user.name}</span> {describe(item.actions)}
+                      </p>
+                    </div>
+                    <Link to={`/movie/${item.imdbId}`} className="mt-2 block truncate font-medium hover:text-amber">
+                      {item.movie?.title || item.imdbId}
+                    </Link>
                     {item.actions.includes('reviewed') && (
-                      <>
-                        <div className="flex items-center space-x-1 my-1">
-                          {[...Array(5)].map((_, s) => (
-                            <FontAwesomeIcon key={s} icon={faStar} className={s < item.rating ? 'text-yellow-400 text-sm' : 'text-gray-600 text-sm'} />
-                          ))}
-                        </div>
+                      <div className="mt-1">
+                        <Rating value={item.rating} /> <span className="text-xs text-muted">/ 5</span>
                         {item.spoiler ? (
-                          <p className="text-yellow-400 text-sm">Review contains spoilers</p>
+                          <p className="mt-1 text-sm text-ember">Review contains spoilers</p>
                         ) : (
-                          item.comment && <p className="text-gray-400 text-sm line-clamp-2">{item.comment}</p>
+                          item.comment && <p className="mt-1 line-clamp-2 text-sm text-ink/80">{item.comment}</p>
                         )}
-                      </>
+                      </div>
                     )}
-                    <p className="text-gray-500 text-xs mt-1">{new Date(item.at).toLocaleString()}</p>
+                    <p className="mt-2 text-xs text-muted">{new Date(item.at).toLocaleString()}</p>
                   </div>
                 </li>
               ))}
@@ -126,34 +130,26 @@ const Community = () => {
         </section>
 
         <aside>
-          <h2 className="text-xl font-semibold text-white mb-4">Find people</h2>
-          <form onSubmit={(e) => e.preventDefault()} className="relative mb-4">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name..."
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-3 py-2 text-white focus:outline-none focus:border-cyan-500"
-            />
-            <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-3 text-gray-500" />
-          </form>
+          <h2 className="mb-4 text-lg font-semibold">Find people</h2>
+          <div className="relative mb-4">
+            <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name..." aria-label="Search people" className="field pl-10" />
+          </div>
 
-          {searched && results.length === 0 && <p className="text-gray-400 text-sm">No users found.</p>}
+          {searched && results.length === 0 && <p className="text-sm text-muted">No users found.</p>}
           <ul className="space-y-2">
             {results.map((person) => (
-              <li key={person.id} className="bg-gray-800 rounded-lg p-3 flex items-center justify-between">
-                <div className="flex items-center space-x-3 min-w-0">
-                  <FontAwesomeIcon icon={faUser} className="text-gray-500" />
+              <li key={person.id} className="card flex items-center justify-between gap-3 p-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={person.name} />
                   <div className="min-w-0">
-                    <div className="text-white truncate">{person.name}</div>
-                    <div className="text-gray-500 text-xs">
-                      {person._count.followers} followers, {person._count.reviews} reviews
-                    </div>
+                    <p className="truncate text-sm font-medium">{person.name}</p>
+                    <p className="text-xs text-muted">
+                      {person._count.followers} followers · {person._count.reviews} reviews
+                    </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => toggleFollow(person)}
-                  className={`text-sm px-3 py-1 rounded-full ${person.isFollowing ? 'bg-gray-700 text-gray-300' : 'bg-cyan-600 text-white'}`}
-                >
+                <button onClick={() => toggleFollow(person)} className={cx('shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors', person.isFollowing ? 'border border-line text-muted hover:text-ink' : 'bg-amber text-obsidian hover:bg-amber-dark')}>
                   {person.isFollowing ? 'Following' : 'Follow'}
                 </button>
               </li>
