@@ -29,9 +29,14 @@ export default {
       },
       keyframes: {
         fadeIn: { '0%': { opacity: '0', transform: 'translateY(8px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+        // Each drifting column holds its posters twice, so moving by exactly half loops seamlessly
+        driftUp: { '0%': { transform: 'translateY(0)' }, '100%': { transform: 'translateY(-50%)' } },
+        driftDown: { '0%': { transform: 'translateY(-50%)' }, '100%': { transform: 'translateY(0)' } },
       },
       animation: {
         'fade-in': 'fadeIn 0.35s ease-out both',
+        'drift-up': 'driftUp 80s linear infinite',
+        'drift-down': 'driftDown 95s linear infinite',
       },
     },
   },

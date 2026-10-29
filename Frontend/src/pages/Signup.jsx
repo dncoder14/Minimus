@@ -85,7 +85,7 @@ const Signup = ({ setUser }) => {
         <ServerNotice message={notice} />
         <Divider />
         <div className="flex justify-center">
-          <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setErrors({ general: 'Google sign up failed' })} theme="filled_black" size="large" width={googleWidth} />
+          <GoogleLogin text="signup_with" onSuccess={handleGoogleSuccess} onError={() => setErrors({ general: 'Google sign up failed' })} theme="filled_black" size="large" width={googleWidth} />
         </div>
       </form>
     </AuthLayout>
