@@ -1,12 +1,22 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { OAuth2Client } = require('google-auth-library');
 const { authenticateToken } = require('../middleware/auth');
+const { z, validate } = require('../lib/validate');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+const registerBody = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(80),
+  email: z.string().trim().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(128)
+});
+const loginBody = z.object({
+  email: z.string().trim().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required')
+});
+
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Google OAuth
@@ -81,7 +91,7 @@ router.post('/google', async (req, res) => {
 });
 
 // Register
-router.post('/register', async (req, res) => {
+router.post('/register', validate({ body: registerBody }), async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -136,7 +146,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', validate({ body: loginBody }), async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -209,7 +219,8 @@ router.get('/me', authenticateToken, async (req, res) => {
           select: {
             reviews: true,
             watchlists: true,
-            favorites: true
+            favorites: true,
+            watched: true
           }
         }
       }

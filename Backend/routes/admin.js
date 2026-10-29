@@ -1,262 +1,153 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { asyncHandler, HttpError } = require('../lib/errors');
+const { z, validate, page, limit } = require('../lib/validate');
+const metadata = require('../services/metadata');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // All admin routes require authentication and admin role
 router.use(authenticateToken);
 router.use(requireAdmin);
 
-// Get dashboard stats
-router.get('/dashboard', async (req, res) => {
-  try {
-    const stats = await Promise.all([
-      prisma.user.count(),
-      prisma.movie.count(),
-      prisma.review.count(),
-      prisma.watchlist.count(),
-      prisma.favorite.count(),
-      prisma.user.count({ where: { role: 'ADMIN' } })
+const idParams = z.object({ id: z.coerce.number().int().positive() });
+const paging = { page, limit: limit(100, 20) };
+
+router.get(
+  '/dashboard',
+  asyncHandler(async (req, res) => {
+    const [totalUsers, totalMovies, totalReviews, totalWatchlistItems, totalFavorites, totalAdmins, recentUsers, recentReviews] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.movie.count(),
+        prisma.review.count(),
+        prisma.watchlist.count(),
+        prisma.favorite.count(),
+        prisma.user.count({ where: { role: 'ADMIN' } }),
+        prisma.user.findMany({ select: { id: true, name: true, email: true, createdAt: true }, orderBy: { createdAt: 'desc' }, take: 5 }),
+        prisma.review.findMany({ include: { user: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' }, take: 5 })
+      ]);
+
+    const movies = await metadata.getSummaries(recentReviews.map((r) => r.imdbId));
+    const byId = new Map(movies.map((m) => [m.id, m]));
+
+    res.json({
+      stats: { totalUsers, totalMovies, totalReviews, totalWatchlistItems, totalFavorites, totalAdmins },
+      recentUsers,
+      recentReviews: recentReviews.map((r) => ({ ...r, movie: byId.get(r.imdbId) || null }))
+    });
+  })
+);
+
+router.get(
+  '/users',
+  validate({ query: z.object({ ...paging, search: z.string().trim().max(80).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const { page: pageNum, limit: take, search } = req.query;
+    const where = search
+      ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { email: { contains: search, mode: 'insensitive' } }] }
+      : {};
+
+    const [users, totalUsers] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: { id: true, name: true, email: true, role: true, createdAt: true, _count: { select: { reviews: true, watchlists: true, favorites: true } } },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip: (pageNum - 1) * take
+      }),
+      prisma.user.count({ where })
     ]);
 
-    const [totalUsers, totalMovies, totalReviews, totalWatchlistItems, totalFavorites, totalAdmins] = stats;
+    res.json({ users, totalUsers, page: pageNum, totalPages: Math.ceil(totalUsers / take) });
+  })
+);
 
-    // Get recent activity
-    const recentUsers = await prisma.user.findMany({
-      select: { id: true, name: true, email: true, createdAt: true },
-      orderBy: { createdAt: 'desc' },
-      take: 5
-    });
-
-    const recentReviews = await prisma.review.findMany({
-      include: {
-        user: { select: { id: true, name: true } },
-        movie: { select: { id: true, title: true } }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 5
-    });
-
-    res.json({
-      stats: {
-        totalUsers,
-        totalMovies,
-        totalReviews,
-        totalWatchlistItems,
-        totalFavorites,
-        totalAdmins
-      },
-      recentUsers,
-      recentReviews
-    });
-  } catch (error) {
-    console.error('Admin dashboard error:', error);
-    res.status(500).json({ error: 'Failed to fetch dashboard data' });
-  }
-});
-
-// Get all users
-router.get('/users', async (req, res) => {
-  try {
-    const { page = 1, limit = 20, search } = req.query;
-
-    const where = search ? {
-      OR: [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } }
-      ]
-    } : {};
-
-    const users = await prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        _count: {
-          select: {
-            reviews: true,
-            watchlists: true,
-            favorites: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: parseInt(limit),
-      skip: (parseInt(page) - 1) * parseInt(limit)
-    });
-
-    const totalUsers = await prisma.user.count({ where });
-
-    res.json({
-      users,
-      totalUsers,
-      page: parseInt(page),
-      totalPages: Math.ceil(totalUsers / parseInt(limit))
-    });
-  } catch (error) {
-    console.error('Get users error:', error);
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
-});
-
-// Update user role
-router.put('/users/:userId/role', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { role } = req.body;
-
-    if (!['USER', 'ADMIN'].includes(role)) {
-      return res.status(400).json({ error: 'Invalid role' });
-    }
-
+router.put(
+  '/users/:id/role',
+  validate({ params: idParams, body: z.object({ role: z.enum(['USER', 'ADMIN']) }) }),
+  asyncHandler(async (req, res) => {
+    if (req.params.id === req.user.id) throw new HttpError(400, 'Cannot change your own role');
     const user = await prisma.user.update({
-      where: { id: parseInt(userId) },
-      data: { role },
+      where: { id: req.params.id },
+      data: { role: req.body.role },
       select: { id: true, name: true, email: true, role: true }
     });
-
     res.json({ message: 'User role updated successfully', user });
-  } catch (error) {
-    console.error('Update user role error:', error);
-    res.status(500).json({ error: 'Failed to update user role' });
-  }
-});
+  })
+);
 
-// Delete user
-router.delete('/users/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    if (parseInt(userId) === req.user.id) {
-      return res.status(400).json({ error: 'Cannot delete your own account' });
-    }
-
-    await prisma.user.delete({
-      where: { id: parseInt(userId) }
-    });
-
+router.delete(
+  '/users/:id',
+  validate({ params: idParams }),
+  asyncHandler(async (req, res) => {
+    if (req.params.id === req.user.id) throw new HttpError(400, 'Cannot delete your own account');
+    await prisma.user.delete({ where: { id: req.params.id } }); // related rows cascade
     res.json({ message: 'User deleted successfully' });
-  } catch (error) {
-    console.error('Delete user error:', error);
-    res.status(500).json({ error: 'Failed to delete user' });
-  }
-});
+  })
+);
 
-// Get all movies
-router.get('/movies', async (req, res) => {
-  try {
-    const { page = 1, limit = 20, search } = req.query;
+router.get(
+  '/movies',
+  validate({ query: z.object({ ...paging, search: z.string().trim().max(80).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const { page: pageNum, limit: take, search } = req.query;
+    const where = search
+      ? { OR: [{ title: { contains: search, mode: 'insensitive' } }, { director: { contains: search, mode: 'insensitive' } }, { actors: { contains: search, mode: 'insensitive' } }] }
+      : {};
 
-    const where = search ? {
-      OR: [
-        { title: { contains: search, mode: 'insensitive' } },
-        { director: { contains: search, mode: 'insensitive' } },
-        { actors: { contains: search, mode: 'insensitive' } }
-      ]
-    } : {};
+    const [movies, totalMovies] = await Promise.all([
+      prisma.movie.findMany({ where, orderBy: { fetchedAt: 'desc' }, take, skip: (pageNum - 1) * take }),
+      prisma.movie.count({ where })
+    ]);
 
-    const movies = await prisma.movie.findMany({
-      where,
-      select: {
-        id: true,
-        imdbId: true,
-        title: true,
-        year: true,
-        type: true,
-        poster: true,
-        imdbRating: true,
-        createdAt: true,
-        _count: {
-          select: {
-            reviews: true,
-            watchlists: true,
-            favorites: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: parseInt(limit),
-      skip: (parseInt(page) - 1) * parseInt(limit)
-    });
+    res.json({ movies, totalMovies, page: pageNum, totalPages: Math.ceil(totalMovies / take) });
+  })
+);
 
-    const totalMovies = await prisma.movie.count({ where });
+// Removes the cached metadata only; it is re-fetched on next view
+router.delete(
+  '/movies/:movieId',
+  asyncHandler(async (req, res) => {
+    await prisma.movie.deleteMany({ where: { id: req.params.movieId } });
+    res.json({ message: 'Cached movie deleted successfully' });
+  })
+);
 
+router.get(
+  '/reviews',
+  validate({ query: z.object(paging) }),
+  asyncHandler(async (req, res) => {
+    const { page: pageNum, limit: take } = req.query;
+    const [reviews, totalReviews] = await Promise.all([
+      prisma.review.findMany({
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip: (pageNum - 1) * take
+      }),
+      prisma.review.count()
+    ]);
+
+    const movies = await metadata.getSummaries(reviews.map((r) => r.imdbId));
+    const byId = new Map(movies.map((m) => [m.id, m]));
     res.json({
-      movies,
-      totalMovies,
-      page: parseInt(page),
-      totalPages: Math.ceil(totalMovies / parseInt(limit))
-    });
-  } catch (error) {
-    console.error('Get movies error:', error);
-    res.status(500).json({ error: 'Failed to fetch movies' });
-  }
-});
-
-// Delete movie
-router.delete('/movies/:movieId', async (req, res) => {
-  try {
-    const { movieId } = req.params;
-
-    await prisma.movie.delete({
-      where: { id: parseInt(movieId) }
-    });
-
-    res.json({ message: 'Movie deleted successfully' });
-  } catch (error) {
-    console.error('Delete movie error:', error);
-    res.status(500).json({ error: 'Failed to delete movie' });
-  }
-});
-
-// Get all reviews
-router.get('/reviews', async (req, res) => {
-  try {
-    const { page = 1, limit = 20 } = req.query;
-
-    const reviews = await prisma.review.findMany({
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        movie: { select: { id: true, title: true, poster: true } }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: parseInt(limit),
-      skip: (parseInt(page) - 1) * parseInt(limit)
-    });
-
-    const totalReviews = await prisma.review.count();
-
-    res.json({
-      reviews,
+      reviews: reviews.map((r) => ({ ...r, movie: byId.get(r.imdbId) || null })),
       totalReviews,
-      page: parseInt(page),
-      totalPages: Math.ceil(totalReviews / parseInt(limit))
+      page: pageNum,
+      totalPages: Math.ceil(totalReviews / take)
     });
-  } catch (error) {
-    console.error('Get reviews error:', error);
-    res.status(500).json({ error: 'Failed to fetch reviews' });
-  }
-});
+  })
+);
 
-// Delete review
-router.delete('/reviews/:reviewId', async (req, res) => {
-  try {
-    const { reviewId } = req.params;
-
-    await prisma.review.delete({
-      where: { id: parseInt(reviewId) }
-    });
-
+router.delete(
+  '/reviews/:id',
+  validate({ params: idParams }),
+  asyncHandler(async (req, res) => {
+    await prisma.review.delete({ where: { id: req.params.id } });
     res.json({ message: 'Review deleted successfully' });
-  } catch (error) {
-    console.error('Delete review error:', error);
-    res.status(500).json({ error: 'Failed to delete review' });
-  }
-});
+  })
+);
 
 module.exports = router;

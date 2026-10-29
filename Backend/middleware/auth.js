@@ -1,22 +1,28 @@
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 
-const prisma = new PrismaClient();
+const bearerToken = (req) => {
+  const authHeader = req.headers['authorization'];
+  return authHeader && authHeader.split(' ')[1];
+};
+
+const loadUser = (token) => {
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  return prisma.user.findUnique({
+    where: { id: decoded.userId },
+    select: { id: true, email: true, name: true, role: true }
+  });
+};
 
 const authenticateToken = async (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = bearerToken(req);
 
   if (!token) {
     return res.status(401).json({ error: 'Access token required' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: { id: true, email: true, name: true, role: true }
-    });
+    const user = await loadUser(token);
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -29,6 +35,19 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
+// Like authenticateToken, but anonymous requests are allowed through with req.user unset
+const optionalAuth = async (req, res, next) => {
+  const token = bearerToken(req);
+  if (!token) return next();
+
+  try {
+    req.user = (await loadUser(token)) || undefined;
+  } catch {
+    // an invalid token on a public route is treated as anonymous
+  }
+  next();
+};
+
 const requireAdmin = (req, res, next) => {
   if (req.user.role !== 'ADMIN') {
     return res.status(403).json({ error: 'Admin access required' });
@@ -36,4 +55,4 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticateToken, requireAdmin };
+module.exports = { authenticateToken, optionalAuth, requireAdmin };

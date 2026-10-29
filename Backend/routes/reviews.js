@@ -1,173 +1,174 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
-const { authenticateToken } = require('../middleware/auth');
+const prisma = require('../lib/prisma');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
+const { asyncHandler, HttpError } = require('../lib/errors');
+const { z, validate, page, limit, mediaId } = require('../lib/validate');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
-// Create or update review
-router.post('/', authenticateToken, async (req, res) => {
-  try {
-    const { imdbId, rating, comment } = req.body;
+const reviewBody = z.object({
+  imdbId: mediaId,
+  rating: z.coerce.number().int().min(1, 'Rating must be between 1 and 5').max(5, 'Rating must be between 1 and 5'),
+  comment: z.string().trim().max(2000).optional().nullable(),
+  spoiler: z.boolean().optional()
+});
 
-    if (!imdbId || !rating) {
-      return res.status(400).json({ error: 'IMDB ID and rating are required' });
-    }
+// Shape a review for the client, adding like data for the (optional) current user
+const serialize = (review, userId) => {
+  const { likes, ...rest } = review;
+  return {
+    ...rest,
+    likeCount: review._count?.likes ?? 0,
+    likedByMe: userId ? (likes || []).some((l) => l.userId === userId) : false
+  };
+};
 
-    if (rating < 1 || rating > 5) {
-      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
-    }
+const reviewInclude = (userId) => ({
+  user: { select: { id: true, name: true } },
+  _count: { select: { likes: true } },
+  likes: userId ? { where: { userId }, select: { userId: true } } : false
+});
+
+router.post(
+  '/',
+  authenticateToken,
+  validate({ body: reviewBody }),
+  asyncHandler(async (req, res) => {
+    const { imdbId, rating, comment, spoiler } = req.body;
+    const data = { rating, comment: comment || null, spoiler: spoiler ?? false };
 
     const review = await prisma.review.upsert({
-      where: {
-        userId_imdbId: {
-          userId: req.user.id,
-          imdbId: imdbId
-        }
-      },
-      update: {
-        rating: parseInt(rating),
-        comment: comment || null
-      },
-      create: {
-        userId: req.user.id,
-        imdbId: imdbId,
-        rating: parseInt(rating),
-        comment: comment || null
-      },
-      include: {
-        user: {
-          select: { id: true, name: true }
-        }
-      }
+      where: { userId_imdbId: { userId: req.user.id, imdbId } },
+      update: data,
+      create: { userId: req.user.id, imdbId, ...data },
+      include: reviewInclude(req.user.id)
     });
 
-    res.status(201).json({
-      message: 'Review saved successfully',
-      review
-    });
-  } catch (error) {
-    console.error('Create review error:', error);
-    res.status(500).json({ error: 'Failed to save review' });
-  }
-});
+    res.status(201).json({ message: 'Review saved successfully', review: serialize(review, req.user.id) });
+  })
+);
 
-// Get reviews for a movie
-router.get('/movie/:imdbId', async (req, res) => {
-  try {
+// Reviews for a movie. sort=recent (default) | helpful | rating
+router.get(
+  '/movie/:imdbId',
+  optionalAuth,
+  validate({
+    query: z.object({ page, limit: limit(50, 10), sort: z.enum(['recent', 'helpful', 'rating']).default('recent') })
+  }),
+  asyncHandler(async (req, res) => {
     const { imdbId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    const { page: pageNum, limit: take, sort } = req.query;
+    const userId = req.user?.id;
 
-    const reviews = await prisma.review.findMany({
-      where: { imdbId: imdbId },
-      include: {
-        user: {
-          select: { id: true, name: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: parseInt(limit),
-      skip: (parseInt(page) - 1) * parseInt(limit)
-    });
+    const orderBy = {
+      recent: [{ createdAt: 'desc' }],
+      helpful: [{ likes: { _count: 'desc' } }, { createdAt: 'desc' }],
+      rating: [{ rating: 'desc' }, { createdAt: 'desc' }]
+    }[sort];
 
-    const totalReviews = await prisma.review.count({
-      where: { imdbId: imdbId }
-    });
-
-    const averageRating = await prisma.review.aggregate({
-      where: { imdbId: imdbId },
-      _avg: { rating: true }
-    });
+    const [reviews, totalReviews, aggregate] = await Promise.all([
+      prisma.review.findMany({
+        where: { imdbId },
+        include: reviewInclude(userId),
+        orderBy,
+        take,
+        skip: (pageNum - 1) * take
+      }),
+      prisma.review.count({ where: { imdbId } }),
+      prisma.review.aggregate({ where: { imdbId }, _avg: { rating: true } })
+    ]);
 
     res.json({
-      reviews,
+      reviews: reviews.map((r) => serialize(r, userId)),
       totalReviews,
-      averageRating: averageRating._avg.rating || 0,
-      page: parseInt(page),
-      totalPages: Math.ceil(totalReviews / parseInt(limit))
+      averageRating: aggregate._avg.rating || 0,
+      page: pageNum,
+      totalPages: Math.ceil(totalReviews / take)
     });
-  } catch (error) {
-    console.error('Get movie reviews error:', error);
-    res.status(500).json({ error: 'Failed to fetch reviews' });
-  }
-});
+  })
+);
 
-// Get user's reviews
-router.get('/user', authenticateToken, async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
+router.get(
+  '/user',
+  authenticateToken,
+  validate({ query: z.object({ page, limit: limit(100, 10) }) }),
+  asyncHandler(async (req, res) => {
+    const { page: pageNum, limit: take } = req.query;
+    const [reviews, totalReviews] = await Promise.all([
+      prisma.review.findMany({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip: (pageNum - 1) * take
+      }),
+      prisma.review.count({ where: { userId: req.user.id } })
+    ]);
 
+    res.json({ reviews, totalReviews, page: pageNum, totalPages: Math.ceil(totalReviews / take) });
+  })
+);
+
+// Recent reviews across the site (public). Declared before "/:reviewId" routes.
+router.get(
+  '/recent',
+  validate({ query: z.object({ limit: limit(50, 10) }) }),
+  asyncHandler(async (req, res) => {
     const reviews = await prisma.review.findMany({
-      where: { userId: req.user.id },
+      include: { user: { select: { id: true, name: true } }, _count: { select: { likes: true } } },
       orderBy: { createdAt: 'desc' },
-      take: parseInt(limit),
-      skip: (parseInt(page) - 1) * parseInt(limit)
+      take: req.query.limit
     });
+    res.json({ reviews: reviews.map((r) => serialize(r)) });
+  })
+);
 
-    const totalReviews = await prisma.review.count({
-      where: { userId: req.user.id }
-    });
+const reviewIdParams = z.object({ reviewId: z.coerce.number().int().positive() });
 
-    res.json({
-      reviews,
-      totalReviews,
-      page: parseInt(page),
-      totalPages: Math.ceil(totalReviews / parseInt(limit))
-    });
-  } catch (error) {
-    console.error('Get user reviews error:', error);
-    res.status(500).json({ error: 'Failed to fetch user reviews' });
-  }
-});
-
-// Delete review
-router.delete('/:reviewId', authenticateToken, async (req, res) => {
-  try {
+router.post(
+  '/:reviewId/like',
+  authenticateToken,
+  validate({ params: reviewIdParams }),
+  asyncHandler(async (req, res) => {
     const { reviewId } = req.params;
+    const review = await prisma.review.findUnique({ where: { id: reviewId } });
+    if (!review) throw new HttpError(404, 'Review not found');
+    if (review.userId === req.user.id) throw new HttpError(400, 'You cannot like your own review');
 
-    const review = await prisma.review.findUnique({
-      where: { id: parseInt(reviewId) }
+    await prisma.reviewLike.upsert({
+      where: { userId_reviewId: { userId: req.user.id, reviewId } },
+      update: {},
+      create: { userId: req.user.id, reviewId }
     });
+    res.json({ likeCount: await prisma.reviewLike.count({ where: { reviewId } }), likedByMe: true });
+  })
+);
 
-    if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
-    }
+router.delete(
+  '/:reviewId/like',
+  authenticateToken,
+  validate({ params: reviewIdParams }),
+  asyncHandler(async (req, res) => {
+    const { reviewId } = req.params;
+    await prisma.reviewLike.deleteMany({ where: { userId: req.user.id, reviewId } });
+    res.json({ likeCount: await prisma.reviewLike.count({ where: { reviewId } }), likedByMe: false });
+  })
+);
 
+router.delete(
+  '/:reviewId',
+  authenticateToken,
+  validate({ params: reviewIdParams }),
+  asyncHandler(async (req, res) => {
+    const { reviewId } = req.params;
+    const review = await prisma.review.findUnique({ where: { id: reviewId } });
+    if (!review) throw new HttpError(404, 'Review not found');
     if (review.userId !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Not authorized to delete this review' });
+      throw new HttpError(403, 'Not authorized to delete this review');
     }
 
-    await prisma.review.delete({
-      where: { id: parseInt(reviewId) }
-    });
-
+    await prisma.review.delete({ where: { id: reviewId } });
     res.json({ message: 'Review deleted successfully' });
-  } catch (error) {
-    console.error('Delete review error:', error);
-    res.status(500).json({ error: 'Failed to delete review' });
-  }
-});
-
-// Get recent reviews (public)
-router.get('/recent', async (req, res) => {
-  try {
-    const { limit = 10 } = req.query;
-
-    const reviews = await prisma.review.findMany({
-      include: {
-        user: {
-          select: { id: true, name: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: parseInt(limit)
-    });
-
-    res.json({ reviews });
-  } catch (error) {
-    console.error('Get recent reviews error:', error);
-    res.status(500).json({ error: 'Failed to fetch recent reviews' });
-  }
-});
+  })
+);
 
 module.exports = router;
