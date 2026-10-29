@@ -40,13 +40,16 @@ const HeroCarousel = ({ items }) => {
             src={slide.backdrop || slide.poster}
             alt=""
             className={cx(
-              'absolute inset-0 -z-10 h-full w-full object-cover transition-opacity duration-700',
+              'absolute inset-0 -z-10 h-full w-full object-cover brightness-90 transition-opacity duration-700',
               i === index ? 'opacity-100' : 'opacity-0'
             )}
           />
         ))}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-obsidian/85 via-obsidian/30 to-transparent" />
+        {/* Fades sit only behind the text (bottom, and left on wide screens); the artwork elsewhere stays bright.
+            A slight brightness limit and top fade tame near-white images. */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-obsidian/50 to-transparent to-[34%]" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-obsidian via-obsidian/60 via-[26%] to-transparent to-[58%]" />
+        <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-obsidian/70 via-obsidian/20 via-[33%] to-transparent to-[58%] sm:block" />
 
         <div className="flex h-full flex-col justify-end p-5 sm:p-8 lg:p-10">
           <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-medium">
@@ -54,8 +57,8 @@ const HeroCarousel = ({ items }) => {
             {item.year && <span className="rounded-full bg-black/60 px-2.5 py-1 backdrop-blur">{item.year}</span>}
             <Rating value={item.rating} className="rounded-full bg-black/60 px-2.5 py-1 backdrop-blur" />
           </div>
-          <h2 className="max-w-2xl text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">{item.title}</h2>
-          <p className="mt-3 line-clamp-2 max-w-xl text-sm text-ink/80 sm:text-base">{item.overview}</p>
+          <h2 className="max-w-2xl text-3xl font-extrabold tracking-tight [text-shadow:0_2px_16px_rgba(0,0,0,0.55)] sm:text-4xl lg:text-5xl">{item.title}</h2>
+          <p className="mt-3 line-clamp-2 max-w-xl text-sm text-ink/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.6)] sm:text-base">{item.overview}</p>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Link to={`/movie/${item.id}`} className="btn-primary">
