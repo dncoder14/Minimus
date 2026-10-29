@@ -1,38 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
-  <title>Minimus Logo</title>
+  <title>Minimus</title>
   <defs>
-    <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#49B8FF"/>
-      <stop offset="100%" stop-color="#1673FF"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10233D"/>
+      <stop offset="1" stop-color="#060A12"/>
     </linearGradient>
-    <mask id="holesL">
-      <rect width="512" height="512" fill="#fff"/>
-      <circle cx="172" cy="184" r="12" fill="#000"/>
-      <circle cx="172" cy="236" r="12" fill="#000"/>
-      <circle cx="172" cy="288" r="12" fill="#000"/>
-      <circle cx="172" cy="340" r="12" fill="#000"/>
-    </mask>
-    <mask id="holesR">
-      <rect width="512" height="512" fill="#fff"/>
-      <circle cx="340" cy="184" r="12" fill="#000"/>
-      <circle cx="340" cy="236" r="12" fill="#000"/>
-      <circle cx="340" cy="288" r="12" fill="#000"/>
-      <circle cx="340" cy="340" r="12" fill="#000"/>
-    </mask>
+    <linearGradient id="m" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="0.55" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#C026D3"/>
+    </linearGradient>
+    <linearGradient id="play" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#A855F7"/>
+    </linearGradient>
   </defs>
-
-  <g transform="rotate(180,256,256)">
-    <!-- Left Film Strip -->
-    <rect x="148" y="136" width="64" height="240" rx="32" fill="url(#blue)" mask="url(#holesL)"/>
-
-    <!-- Right Film Strip -->
-    <rect x="300" y="136" width="64" height="240" rx="32" fill="url(#blue)" mask="url(#holesR)"/>
-
-    <!-- Center "M" chevrons -->
-    <g fill="url(#blue)" transform="translate(0,4)">
-      <path d="M256 188 L220 232 L236 250 L256 224 L276 250 L292 232 Z"/>
-      <path d="M256 238 L220 282 L236 300 L256 274 L276 300 L292 282 Z"/>
-      <path d="M256 288 L228 326 L256 364 L284 326 Z"/>
-    </g>
-  </g>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <!-- M -->
+  <path d="M140 372V150L256 250L372 150V372" fill="none" stroke="url(#m)" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- play button nested in the M -->
+  <path d="M230 296V372L292 334Z" fill="url(#play)" stroke="url(#play)" stroke-width="14" stroke-linejoin="round"/>
 </svg>

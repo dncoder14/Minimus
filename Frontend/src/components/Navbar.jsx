@@ -47,8 +47,11 @@ const Navbar = ({ user, setUser }) => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <img src="/logo.svg" alt="Minimus" className="h-12 w-12" />
-            <span className="text-2xl font-display font-bold" style={{ color: '#A855F7' }}>
+            <img src="/logo.svg" alt="" className="h-11 w-11 rounded-xl shadow-lg shadow-indigo-500/20" />
+            <span
+              className="text-2xl font-display font-bold bg-clip-text text-transparent"
+              style={{ backgroundImage: 'linear-gradient(90deg, #22D3EE, #818CF8 55%, #D946EF)' }}
+            >
               Minimus
             </span>
           </Link>

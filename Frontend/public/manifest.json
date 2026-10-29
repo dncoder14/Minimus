@@ -4,11 +4,21 @@
   "description": "Discover, explore, and track your favorite movies and TV series",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#111827",
-  "theme_color": "#ef4444",
+  "background_color": "#05080E",
+  "theme_color": "#0A1B2F",
   "icons": [
     {
-      "src": "/vite.svg",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }
