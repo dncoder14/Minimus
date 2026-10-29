@@ -6,6 +6,7 @@ import { watchlistAPI, favoritesAPI, watchedAPI, reviewsAPI, moviesAPI } from '.
 import { 
   faStar, 
   faHeart, 
+  faThumbsUp, 
   faBookmark, 
   faPlay,
   faCalendar,
@@ -31,6 +32,9 @@ const MovieDetail = () => {
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
+  const [spoiler, setSpoiler] = useState(false)
+  const [reviewSort, setReviewSort] = useState('recent')
+  const [revealed, setRevealed] = useState({})
   const [reviews, setReviews] = useState([])
   const [averageRating, setAverageRating] = useState(0)
 
@@ -39,88 +43,11 @@ const MovieDetail = () => {
       try {
         setLoading(true)
         
-        let movieData
-        if (id.startsWith('tmdb')) {
-          // TMDB ID - check if it's a movie or series
-          const tmdbId = id.replace('tmdb', '')
-          
-          // Try movie first
-          let response = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=3757ac660ffc9e9bc47412ea8c89e23c&append_to_response=credits`)
-          let data = await response.json()
-          
-          // If movie not found, try TV series
-          if (data.success === false || !data.id) {
-            response = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=3757ac660ffc9e9bc47412ea8c89e23c&append_to_response=credits`)
-            data = await response.json()
-            
-            if (data.id) {
-              // It's a TV series
-              movieData = {
-                Title: data.name,
-                Year: data.first_air_date?.split('-')[0],
-                Rated: 'Not Rated',
-                Released: data.first_air_date,
-                Runtime: data.episode_run_time?.[0] ? `${data.episode_run_time[0]} min` : 'N/A',
-                Genre: data.genres?.map(g => g.name).join(', '),
-                Director: data.created_by?.map(c => c.name).join(', ') || 'N/A',
-                Writer: data.created_by?.map(c => c.name).join(', ') || 'N/A',
-                Actors: data.credits?.cast?.slice(0, 5).map(c => c.name).join(', ') || 'N/A',
-                Plot: data.overview,
-                Language: data.original_language,
-                Country: data.origin_country?.join(', ') || 'N/A',
-                Awards: 'N/A',
-                Poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : 'N/A',
-                Ratings: [{ Source: 'TMDB', Value: `${data.vote_average}/10` }],
-                imdbRating: data.vote_average?.toFixed(1),
-                imdbVotes: data.vote_count?.toLocaleString(),
-                Type: 'series',
-                BoxOffice: 'N/A',
-                Production: data.production_companies?.map(c => c.name).join(', ') || 'N/A'
-              }
-              setMovie(movieData)
-              return
-            } else {
-              setError('Content not found')
-              return
-            }
-          }
-          
-          // It's a movie
-          if (data.id) {
-            movieData = {
-              Title: data.title,
-              Year: data.release_date?.split('-')[0],
-              Rated: 'Not Rated',
-              Released: data.release_date,
-              Runtime: `${data.runtime} min`,
-              Genre: data.genres?.map(g => g.name).join(', '),
-              Director: data.credits?.crew?.find(c => c.job === 'Director')?.name || 'N/A',
-              Writer: data.credits?.crew?.filter(c => c.job === 'Writer').map(c => c.name).join(', ') || 'N/A',
-              Actors: data.credits?.cast?.slice(0, 5).map(c => c.name).join(', ') || 'N/A',
-              Plot: data.overview,
-              Language: data.original_language,
-              Country: data.production_countries?.map(c => c.name).join(', ') || 'N/A',
-              Awards: 'N/A',
-              Poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : 'N/A',
-              Ratings: [{ Source: 'TMDB', Value: `${data.vote_average}/10` }],
-              imdbRating: data.vote_average?.toFixed(1),
-              imdbVotes: data.vote_count?.toLocaleString(),
-              Type: 'movie',
-              BoxOffice: 'N/A',
-              Production: data.production_companies?.map(c => c.name).join(', ') || 'N/A'
-            }
-          } else {
-            setError('Movie not found')
-            return
-          }
-        } else {
-          // OMDB ID (use backend API)
-          const response = await moviesAPI.getById(id)
-          movieData = response.data.movie
-        }
-        
+        // The backend resolves both IMDb (tt...) and TMDB (tmdb...) ids into one shape
+        const response = await moviesAPI.getById(id)
+        const movieData = response.data.movie
         setMovie(movieData)
-      } catch (error) {
+      } catch {
         setError('Failed to fetch movie details')
       } finally {
         setLoading(false)
@@ -142,9 +69,17 @@ const MovieDetail = () => {
       }
     }
 
+    if (id) {
+      fetchMovieDetails()
+      checkStatus()
+    }
+  }, [id])
+
+  useEffect(() => {
+    if (!id) return
     const fetchReviews = async () => {
       try {
-        const res = await reviewsAPI.getByMovie(id)
+        const res = await reviewsAPI.getByMovie(id, reviewSort)
         setReviews(res.data.reviews || [])
         setAverageRating(res.data.averageRating || 0)
       } catch (error) {
@@ -152,12 +87,8 @@ const MovieDetail = () => {
       }
     }
 
-    if (id) {
-      fetchMovieDetails()
-      checkStatus()
-      fetchReviews()
-    }
-  }, [id])
+    fetchReviews()
+  }, [id, reviewSort])
 
   const getRatingColor = (rating) => {
     const numRating = parseFloat(rating)
@@ -209,16 +140,26 @@ const MovieDetail = () => {
   const handleSubmitReview = async (e) => {
     e.preventDefault()
     try {
-      await reviewsAPI.create({ imdbId: id, rating, comment })
+      await reviewsAPI.create({ imdbId: id, rating, comment, spoiler })
       toast.success('Review submitted!')
       setShowReviewForm(false)
       setRating(0)
       setComment('')
-      const res = await reviewsAPI.getByMovie(id)
+      setSpoiler(false)
+      const res = await reviewsAPI.getByMovie(id, reviewSort)
       setReviews(res.data.reviews || [])
       setAverageRating(res.data.averageRating || 0)
     } catch (error) {
-      toast.error('Failed to submit review')
+      toast.error(error.response?.data?.error || 'Failed to submit review')
+    }
+  }
+
+  const handleToggleLike = async (review) => {
+    try {
+      const res = review.likedByMe ? await reviewsAPI.unlike(review.id) : await reviewsAPI.like(review.id)
+      setReviews((prev) => prev.map((r) => (r.id === review.id ? { ...r, ...res.data } : r)))
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Could not update like')
     }
   }
 
@@ -432,6 +373,10 @@ const MovieDetail = () => {
                       rows="4"
                       placeholder="Share your thoughts..."
                     />
+                    <label className="flex items-center space-x-2 mt-2 text-sm text-gray-300">
+                      <input type="checkbox" checked={spoiler} onChange={(e) => setSpoiler(e.target.checked)} />
+                      <span>This review contains spoilers</span>
+                    </label>
                   </div>
                   <div className="flex gap-4">
                     <button
@@ -575,6 +520,21 @@ const MovieDetail = () => {
             )}
           </h3>
           
+          {reviews.length > 1 && (
+            <div className="flex items-center space-x-2 mb-4 text-sm">
+              <span className="text-gray-400">Sort by</span>
+              {[['recent', 'Newest'], ['helpful', 'Most helpful'], ['rating', 'Highest rated']].map(([value, label]) => (
+                <button
+                  key={value}
+                  onClick={() => setReviewSort(value)}
+                  className={`px-3 py-1 rounded-full ${reviewSort === value ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {reviews.length === 0 ? (
             <p className="text-gray-400">No reviews yet. Be the first to review!</p>
           ) : (
@@ -597,11 +557,30 @@ const MovieDetail = () => {
                     </div>
                   </div>
                   {review.comment && (
-                    <p className="text-gray-300">{review.comment}</p>
+                    review.spoiler && !revealed[review.id] ? (
+                      <button
+                        onClick={() => setRevealed((prev) => ({ ...prev, [review.id]: true }))}
+                        className="text-yellow-400 text-sm underline"
+                      >
+                        Contains spoilers, click to reveal
+                      </button>
+                    ) : (
+                      <p className="text-gray-300">{review.comment}</p>
+                    )
                   )}
-                  <p className="text-gray-500 text-sm mt-2">
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-gray-500 text-sm">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </p>
+                    <button
+                      onClick={() => handleToggleLike(review)}
+                      className={`text-sm flex items-center space-x-1 ${review.likedByMe ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
+                      aria-label="Mark review as helpful"
+                    >
+                      <FontAwesomeIcon icon={faThumbsUp} />
+                      <span>{review.likeCount}</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

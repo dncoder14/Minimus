@@ -6,13 +6,17 @@ import {
   faPlay,
   faChevronLeft,
   faChevronRight,
-  faChartLine
+  faRotateRight
 } from '@fortawesome/free-solid-svg-icons'
+import { tmdb, discoverAPI } from '../services/api'
 
 const Dashboard = () => {
   const [trendingMovies, setTrendingMovies] = useState([])
   const [genreMovies, setGenreMovies] = useState({})
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [recommendations, setRecommendations] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const carouselRef = useRef(null)
 
@@ -28,9 +32,10 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchMovies = async () => {
       try {
+        setLoading(true)
+        setError(false)
         // Fetch trending movies
-        const trendingRes = await fetch('https://api.themoviedb.org/3/trending/movie/week?api_key=3757ac660ffc9e9bc47412ea8c89e23c')
-        const trendingData = await trendingRes.json()
+        const trendingData = await tmdb.get('/trending/movie/week')
         const filteredMovies = (trendingData.results || []).filter(movie => 
           !movie.title?.toLowerCase().includes('xxx')
         ).slice(0, 6)
@@ -38,8 +43,7 @@ const Dashboard = () => {
 
         // Fetch movies by genre
         const genrePromises = genres.map(async (genre) => {
-          const res = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=3757ac660ffc9e9bc47412ea8c89e23c&with_genres=${genre.id}&sort_by=popularity.desc`)
-          const data = await res.json()
+          const data = await tmdb.get('/discover/movie', { with_genres: genre.id, sort_by: 'popularity.desc' })
           return { [genre.name]: data.results?.slice(0, 6) || [] }
         })
 
@@ -48,12 +52,19 @@ const Dashboard = () => {
         setGenreMovies(genreMoviesObj)
       } catch (error) {
         console.error('Error fetching movies:', error)
+        setError(true)
       } finally {
         setLoading(false)
       }
     }
 
     fetchMovies()
+  }, [reloadKey])
+
+  useEffect(() => {
+    discoverAPI.recommendations(12)
+      .then((res) => setRecommendations(res.data.recommendations || []))
+      .catch(() => setRecommendations([]))
   }, [])
 
   useEffect(() => {
@@ -162,6 +173,59 @@ const Dashboard = () => {
           )}
         </div>
       </section>
+
+      {error && !loading && (
+        <section className="pb-10">
+          <div className="max-w-3xl mx-auto px-4 text-center glass-card rounded-xl p-8">
+            <p className="text-white text-lg mb-2">We couldn't load movies right now.</p>
+            <p className="text-gray-400 text-sm mb-4">Check your connection and try again.</p>
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold"
+            >
+              <FontAwesomeIcon icon={faRotateRight} className="mr-2" />
+              Retry
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Personalised picks */}
+      {recommendations.length > 0 && (
+        <section className="pb-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h3 className="text-3xl font-display font-bold text-white mb-1">Recommended for you</h3>
+            <p className="text-gray-400 text-sm mb-6">{recommendations[0].reason}</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              {recommendations.slice(0, 6).map((movie) => (
+                <Link key={movie.id} to={`/movie/${movie.id}`} className="group">
+                  <div className="glass-card rounded-xl overflow-hidden transition-all duration-500 hover:scale-105 hover:-translate-y-2">
+                    <div className="aspect-[2/3] overflow-hidden relative">
+                      <img
+                        src={movie.poster || '/placeholder-movie.svg'}
+                        alt={movie.title}
+                        className="w-full h-full object-cover"
+                      />
+                      {movie.rating && (
+                        <div className="absolute top-3 right-3 glass-dark rounded-lg px-2.5 py-1.5 flex items-center space-x-1.5">
+                          <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs" />
+                          <span className="text-xs font-bold text-white">{Number(movie.rating).toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h4 className="font-display font-bold text-sm text-white group-hover:text-cyan-400 transition-colors line-clamp-2">
+                        {movie.title}
+                      </h4>
+                      <p className="text-gray-400 text-xs">{movie.year}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Genre-based Recommendations */}
       <section className="pb-20">

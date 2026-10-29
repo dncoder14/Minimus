@@ -8,13 +8,12 @@ import {
   faList,
   faStar,
   faCalendar,
-  faClock,
   faFilm,
   faChevronLeft,
   faChevronRight
 } from '@fortawesome/free-solid-svg-icons'
 import MovieCard from '../components/MovieCard'
-import { watchlistAPI, favoritesAPI } from '../services/api'
+import { watchlistAPI, favoritesAPI, tmdb } from '../services/api'
 
 const Movies = () => {
   const [movies, setMovies] = useState([])
@@ -30,8 +29,6 @@ const Movies = () => {
   const [sortBy, setSortBy] = useState('popularity.desc')
   const [genres, setGenres] = useState([])
   
-  const TMDB_API_KEY = '3757ac660ffc9e9bc47412ea8c89e23c'
-  const TMDB_BASE_URL = 'https://api.themoviedb.org/3'
   const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500'
 
   useEffect(() => {
@@ -45,8 +42,7 @@ const Movies = () => {
 
   const fetchGenres = async () => {
     try {
-      const response = await fetch(`${TMDB_BASE_URL}/genre/movie/list?api_key=${TMDB_API_KEY}`)
-      const data = await response.json()
+      const data = await tmdb.get('/genre/movie/list')
       setGenres(data.genres || [])
     } catch (error) {
       console.error('Error fetching genres:', error)
@@ -56,13 +52,11 @@ const Movies = () => {
   const fetchMovies = async () => {
     try {
       setLoading(true)
-      let url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&page=${currentPage}&sort_by=${sortBy}`
-      
-      if (filters.genre) url += `&with_genres=${filters.genre}`
-      if (filters.year) url += `&primary_release_year=${filters.year}`
-      
-      const response = await fetch(url)
-      const data = await response.json()
+      const params = { page: currentPage, sort_by: sortBy }
+      if (filters.genre) params.with_genres = filters.genre
+      if (filters.year) params.primary_release_year = filters.year
+
+      const data = await tmdb.get('/discover/movie', params)
       
       setMovies(data.results || [])
       setTotalPages(data.total_pages || 0)

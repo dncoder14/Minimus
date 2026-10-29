@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
@@ -20,7 +20,6 @@ const Home = () => {
   const [stats, setStats] = useState({ movies: 0, series: 0, users: 0 })
   const [heroPosters, setHeroPosters] = useState([])
   const [loadingMessage, setLoadingMessage] = useState(null)
-  const carouselRef = useRef(null)
 
   useEffect(() => {
     const t1 = setTimeout(() => setLoadingMessage('slow'), 15000)
@@ -31,11 +30,11 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [page1, page2] = await Promise.all([
-          fetch('https://api.themoviedb.org/3/movie/popular?api_key=3757ac660ffc9e9bc47412ea8c89e23c&page=1'),
-          fetch('https://api.themoviedb.org/3/trending/all/week?api_key=3757ac660ffc9e9bc47412ea8c89e23c'),
+        const { tmdb } = await import('../services/api')
+        const [data1, data2] = await Promise.all([
+          tmdb.get('/movie/popular', { page: 1 }),
+          tmdb.get('/trending/all/week'),
         ])
-        const [data1, data2] = await Promise.all([page1.json(), page2.json()])
         setHeroPosters([...(data1.results?.slice(0, 10) || []), ...(data2.results?.slice(0, 10) || [])])
       } catch (error) {
         console.error('Error fetching posters:', error)

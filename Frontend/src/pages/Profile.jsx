@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { watchlistAPI, favoritesAPI, watchedAPI, reviewsAPI, moviesAPI } from '../services/api'
+import { watchlistAPI, favoritesAPI, watchedAPI, reviewsAPI, discoverAPI } from '../services/api'
 import { 
   faUser, 
   faHeart, 
@@ -9,9 +9,6 @@ import {
   faEye,
   faEdit,
   faStar,
-  faCalendar,
-  faFilm,
-  faTv
 } from '@fortawesome/free-solid-svg-icons'
 
 const Profile = ({ user }) => {
@@ -19,38 +16,29 @@ const Profile = ({ user }) => {
   const [watchlistData, setWatchlistData] = useState([])
   const [favoritesData, setFavoritesData] = useState([])
   const [watchedData, setWatchedData] = useState([])
-  const [reviewsData, setReviewsData] = useState([])
+  const [, setReviewsData] = useState([])
   const [loading, setLoading] = useState(false)
   const [counts, setCounts] = useState({ watchlist: 0, favorites: 0, reviews: 0 })
+  const [stats, setStats] = useState(null)
 
   useEffect(() => {
     if (user) {
       fetchData()
+      discoverAPI.stats().then((res) => setStats(res.data.stats)).catch(() => setStats(null))
     }
   }, [user])
 
-  const fetchMovieDetails = async (imdbId) => {
-    try {
-      if (imdbId.startsWith('tmdb')) {
-        const tmdbId = imdbId.replace('tmdb', '')
-        const response = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=3757ac660ffc9e9bc47412ea8c89e23c`)
-        const data = await response.json()
-        return data.id ? {
-          Title: data.title,
-          Year: data.release_date?.split('-')[0],
-          Poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : 'N/A',
-          imdbRating: data.vote_average?.toFixed(1),
-          Type: 'movie'
-        } : null
-      } else {
-        const response = await moviesAPI.getById(imdbId)
-        return response.data.movie
-      }
-    } catch (error) {
-      console.error('Error fetching movie details:', error)
-      return null
-    }
-  }
+  // The backend returns cached movie metadata with each list item; adapt it to the card shape
+  const toDetails = (movie) =>
+    movie
+      ? {
+          Title: movie.title,
+          Year: movie.year,
+          Poster: movie.poster || 'N/A',
+          imdbRating: movie.rating ? movie.rating.toFixed(1) : 'N/A',
+          Type: movie.type,
+        }
+      : null
 
   const fetchData = async () => {
     try {
@@ -62,27 +50,11 @@ const Profile = ({ user }) => {
         reviewsAPI.getUserReviews()
       ])
       
-      const watchlistWithDetails = await Promise.all(
-        (watchlistRes.data.watchlist || []).map(async (item) => {
-          const movieDetails = await fetchMovieDetails(item.imdbId)
-          return { ...item, movieDetails }
-        })
-      )
-      
-      const favoritesWithDetails = await Promise.all(
-        (favoritesRes.data.favorites || []).map(async (item) => {
-          const movieDetails = await fetchMovieDetails(item.imdbId)
-          return { ...item, movieDetails }
-        })
-      )
+      const withDetails = (items = []) => items.map((item) => ({ ...item, movieDetails: toDetails(item.movie) }))
+      const watchlistWithDetails = withDetails(watchlistRes.data.watchlist)
+      const favoritesWithDetails = withDetails(favoritesRes.data.favorites)
+      const watchedWithDetails = withDetails(watchedRes.data.watched)
 
-      const watchedWithDetails = await Promise.all(
-        (watchedRes.data.watched || []).map(async (item) => {
-          const movieDetails = await fetchMovieDetails(item.imdbId)
-          return { ...item, movieDetails }
-        })
-      )
-      
       setWatchlistData(watchlistWithDetails)
       setFavoritesData(favoritesWithDetails)
       setWatchedData(watchedWithDetails)
@@ -147,6 +119,47 @@ const Profile = ({ user }) => {
             </button>
           </div>
         </div>
+
+        {/* Viewing stats */}
+        {stats && stats.watchedCount > 0 && (
+          <div className="bg-gray-800 rounded-xl p-6 mb-8">
+            <h3 className="text-xl font-semibold mb-4">Your viewing stats</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gray-700 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-cyan-400">{stats.watchedCount}</div>
+                <div className="text-gray-400 text-sm">Titles watched</div>
+              </div>
+              <div className="bg-gray-700 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-purple-400">{stats.hoursWatched}</div>
+                <div className="text-gray-400 text-sm">Hours watched</div>
+              </div>
+              <div className="bg-gray-700 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-yellow-400">{stats.averageRating || '-'}</div>
+                <div className="text-gray-400 text-sm">Avg. rating given</div>
+              </div>
+              <div className="bg-gray-700 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-red-400">{stats.topGenres[0]?.genre || '-'}</div>
+                <div className="text-gray-400 text-sm">Top genre</div>
+              </div>
+            </div>
+            {stats.topGenres.length > 0 && (
+              <div className="space-y-2">
+                {stats.topGenres.map(({ genre, count }) => (
+                  <div key={genre} className="flex items-center text-sm">
+                    <span className="w-24 text-gray-300">{genre}</span>
+                    <div className="flex-1 bg-gray-700 rounded-full h-2 mr-3">
+                      <div
+                        className="bg-gradient-to-r from-cyan-500 to-purple-500 h-2 rounded-full"
+                        style={{ width: `${(count / stats.topGenres[0].count) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-gray-400 w-6 text-right">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="bg-gray-800 rounded-xl mb-8">

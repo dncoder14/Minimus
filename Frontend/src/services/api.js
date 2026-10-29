@@ -27,8 +27,14 @@ export const authAPI = {
   getStats: () => api.get('/auth/stats'),
 };
 
+// TMDB data is fetched through the backend so the API key never ships to the browser
+export const tmdb = {
+  get: (path, params = {}) => api.get(`/tmdb${path}`, { params }).then((res) => res.data),
+};
+
 // Movies API
 export const moviesAPI = {
+  getBatch: (ids) => api.post('/movies/batch', { ids }),
   search: (query, page = 1) => api.get(`/movies/search?q=${encodeURIComponent(query)}&page=${page}`),
   getById: (imdbId) => api.get(`/movies/${imdbId}`),
   getPopular: () => api.get('/movies/popular/list'),
@@ -37,7 +43,10 @@ export const moviesAPI = {
 // Reviews API
 export const reviewsAPI = {
   create: (reviewData) => api.post('/reviews', reviewData),
-  getByMovie: (movieId) => api.get(`/reviews/movie/${movieId}`),
+  getByMovie: (movieId, sort = 'recent') => api.get(`/reviews/movie/${movieId}`, { params: { sort } }),
+  like: (reviewId) => api.post(`/reviews/${reviewId}/like`),
+  unlike: (reviewId) => api.delete(`/reviews/${reviewId}/like`),
+  remove: (reviewId) => api.delete(`/reviews/${reviewId}`),
   getUserReviews: () => api.get('/reviews/user'),
 };
 
@@ -45,7 +54,7 @@ export const reviewsAPI = {
 export const watchlistAPI = {
   add: (imdbId) => api.post('/watchlist', { imdbId }),
   remove: (imdbId) => api.delete(`/watchlist/${imdbId}`),
-  get: () => api.get('/watchlist'),
+  get: (limit = 100) => api.get('/watchlist', { params: { limit } }),
   check: (imdbId) => api.get(`/watchlist/check/${imdbId}`),
 };
 
@@ -53,7 +62,7 @@ export const watchlistAPI = {
 export const favoritesAPI = {
   add: (imdbId) => api.post('/favorites', { imdbId }),
   remove: (imdbId) => api.delete(`/favorites/${imdbId}`),
-  get: () => api.get('/favorites'),
+  get: (limit = 100) => api.get('/favorites', { params: { limit } }),
   check: (imdbId) => api.get(`/favorites/check/${imdbId}`),
 };
 
@@ -61,8 +70,23 @@ export const favoritesAPI = {
 export const watchedAPI = {
   add: (imdbId) => api.post('/watched', { imdbId }),
   remove: (imdbId) => api.delete(`/watched/${imdbId}`),
-  get: () => api.get('/watched'),
+  get: (limit = 100) => api.get('/watched', { params: { limit } }),
   check: (imdbId) => api.get(`/watched/check/${imdbId}`),
+};
+
+// Discovery API
+export const discoverAPI = {
+  recommendations: (limit = 12) => api.get('/recommendations', { params: { limit } }),
+  stats: () => api.get('/stats/me'),
+};
+
+// Social API
+export const socialAPI = {
+  searchUsers: (q) => api.get('/social/users', { params: { q } }),
+  getUser: (id) => api.get(`/social/users/${id}`),
+  follow: (id) => api.post(`/social/follow/${id}`),
+  unfollow: (id) => api.delete(`/social/follow/${id}`),
+  feed: () => api.get('/social/feed'),
 };
 
 export default api;
