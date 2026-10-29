@@ -13,6 +13,7 @@ import MovieDetail from './pages/MovieDetail'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Profile from './pages/Profile'
+import Community from './pages/Community'
 import './App.css'
 
 function App() {
@@ -26,7 +27,7 @@ function App() {
     
     if (token && userData) {
       try {
-        const parsedUser = JSON.parse(userData)
+        JSON.parse(userData) // throws on corrupt data, handled below
         // Verify token is still valid by making API call
         import('./services/api').then(({ authAPI }) => {
           authAPI.getProfile()
@@ -41,7 +42,7 @@ function App() {
             .finally(() => setLoading(false))
         })
         return
-      } catch (error) {
+      } catch {
         localStorage.removeItem('token')
         localStorage.removeItem('user')
       }
@@ -58,7 +59,7 @@ function App() {
   }
 
   return (
-    <GoogleOAuthProvider clientId="637148170835-9gffvr77r5o2a4vhqs7e7kn46g19k6fe.apps.googleusercontent.com">
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || '637148170835-9gffvr77r5o2a4vhqs7e7kn46g19k6fe.apps.googleusercontent.com'}>
       <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#1f2937', color: '#fff', border: '1px solid rgba(14, 165, 233, 0.3)' }, success: { iconTheme: { primary: '#10b981', secondary: '#fff' } }, error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } } }} />
       <Router>
         <div className="min-h-screen text-cinematic-text relative" style={{ background: 'linear-gradient(180deg, #0A1B2F 0%, #05080E 100%)' }}>
@@ -74,6 +75,7 @@ function App() {
               <Route path="/search" element={<ProtectedRoute user={user}><Search /></ProtectedRoute>} />
               <Route path="/movie/:id" element={<ProtectedRoute user={user}><MovieDetail /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute user={user}><Profile user={user} /></ProtectedRoute>} />
+              <Route path="/community" element={<ProtectedRoute user={user}><Community /></ProtectedRoute>} />
             </Routes>
           </main>
         </div>

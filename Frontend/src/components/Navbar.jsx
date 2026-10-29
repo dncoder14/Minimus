@@ -5,12 +5,11 @@ import {
   faFilm, 
   faSearch, 
   faUser, 
-  faHeart, 
-  faBookmark, 
   faBars, 
   faTimes,
   faSignOutAlt,
   faTv,
+  faUserGroup,
   faChartLine
 } from '@fortawesome/free-solid-svg-icons'
 
@@ -68,6 +67,10 @@ const Navbar = ({ user, setUser }) => {
               <Link to="/series" className={navLinkClass('/series')}>
                 <FontAwesomeIcon icon={faTv} className="mr-2" />
                 Series
+              </Link>
+              <Link to="/community" className={navLinkClass('/community')}>
+                <FontAwesomeIcon icon={faUserGroup} className="mr-2" />
+                Community
               </Link>
             </div>
           )}
@@ -164,6 +167,10 @@ const Navbar = ({ user, setUser }) => {
               <Link to="/series" className={`flex items-center space-x-2 py-2 transition-colors ${location.pathname === '/series' ? 'text-cyan-400' : 'text-cinematic-text hover:text-electric-blue'}`}>
                 <FontAwesomeIcon icon={faTv} />
                 <span>Series</span>
+              </Link>
+              <Link to="/community" className={`flex items-center space-x-2 py-2 transition-colors ${location.pathname === '/community' ? 'text-cyan-400' : 'text-cinematic-text hover:text-electric-blue'}`}>
+                <FontAwesomeIcon icon={faUserGroup} />
+                <span>Community</span>
               </Link>
               
               {user ? (
