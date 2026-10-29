@@ -33,7 +33,7 @@ const LIBRARY_NAV = [
 
 const Logo = ({ className }) => (
   <Link to="/dashboard" className={cx('flex items-center gap-3', className)}>
-    <img src="/logo.svg" alt="" className="h-9 w-9 rounded-[10px]" />
+    <img src="/logo.png" alt="" className="h-10 w-10 object-contain" />
     <span className="text-lg font-bold tracking-tight">Minimus</span>
   </Link>
 )

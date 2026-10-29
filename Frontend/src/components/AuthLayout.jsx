@@ -5,7 +5,7 @@ const AuthLayout = ({ title, subtitle, children, footer }) => (
   <div className="grid min-h-screen bg-obsidian lg:grid-cols-2">
     <div className="flex flex-col px-6 py-8 sm:px-12">
       <Link to="/" className="flex items-center gap-3">
-        <img src="/logo.svg" alt="" className="h-9 w-9 rounded-[10px]" />
+        <img src="/logo.png" alt="" className="h-10 w-10 object-contain" />
         <span className="text-lg font-bold tracking-tight">Minimus</span>
       </Link>
 
