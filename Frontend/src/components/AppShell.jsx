@@ -15,6 +15,7 @@ import {
   faRightFromBracket,
   faUser,
 } from '@fortawesome/free-solid-svg-icons'
+import SearchBox from './SearchBox'
 import { cx } from './ui'
 
 const MAIN_NAV = [
@@ -47,7 +48,6 @@ const navItem = ({ isActive }) =>
 const AppShell = ({ user, setUser }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const [query, setQuery] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileSearch, setMobileSearch] = useState(false)
   const menuRef = useRef(null)
@@ -64,12 +64,6 @@ const AppShell = ({ user, setUser }) => {
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [])
-
-  const submitSearch = (e) => {
-    e.preventDefault()
-    const term = query.trim()
-    if (term) navigate(`/search?q=${encodeURIComponent(term)}`)
-  }
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -115,16 +109,7 @@ const AppShell = ({ user, setUser }) => {
           <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 sm:px-6 lg:px-8">
             <Logo className="lg:hidden" />
 
-            <form onSubmit={submitSearch} className="relative hidden max-w-xl flex-1 sm:block">
-              <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search movies and series..."
-                aria-label="Search"
-                className="field pl-10"
-              />
-            </form>
+            <SearchBox className="hidden max-w-xl flex-1 sm:block" />
 
             <div className="ml-auto flex items-center gap-2">
               <button
@@ -169,9 +154,9 @@ const AppShell = ({ user, setUser }) => {
           </div>
 
           {mobileSearch && (
-            <form onSubmit={submitSearch} className="border-t border-line px-4 py-3 sm:hidden">
-              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search movies and series..." aria-label="Search" className="field" />
-            </form>
+            <div className="border-t border-line px-4 py-3 sm:hidden">
+              <SearchBox autoFocus onNavigate={() => setMobileSearch(false)} />
+            </div>
           )}
         </header>
 
