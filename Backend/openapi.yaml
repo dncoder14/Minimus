@@ -1,0 +1,150 @@
+openapi: 3.0.3
+info:
+  title: Minimus API
+  version: 2.0.0
+  description: Movie and series tracking API. Protected routes need `Authorization: Bearer <token>`.
+servers:
+  - url: http://localhost:3002
+  - url: https://minimus-backend.onrender.com
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    Error:
+      type: object
+      properties: { error: { type: string } }
+    MediaId:
+      type: string
+      description: IMDb id (`tt0111161`) or TMDB id (`tmdb603`, `tmdbtv1399`)
+      example: tt0111161
+    Review:
+      type: object
+      properties:
+        id: { type: integer }
+        imdbId: { $ref: '#/components/schemas/MediaId' }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, nullable: true }
+        spoiler: { type: boolean }
+        likeCount: { type: integer }
+        likedByMe: { type: boolean }
+  responses:
+    Unauthorized:
+      description: Missing or invalid token
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    BadRequest:
+      description: Validation failed
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+security: []
+paths:
+  /api/health:
+    get: { tags: [System], summary: Health check including database, responses: { '200': { description: OK } } }
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties: { name: { type: string }, email: { type: string }, password: { type: string, minLength: 6 } }
+      responses: { '201': { description: Created, returns user and token }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in with email and password
+      responses: { '200': { description: Returns user and token }, '401': { $ref: '#/components/responses/Unauthorized' } }
+  /api/auth/google:
+    post:
+      tags: [Auth]
+      summary: Log in with a Google ID token (verified server-side)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [credential], properties: { credential: { type: string } } } } }
+      responses: { '200': { description: Returns user and token }, '401': { $ref: '#/components/responses/Unauthorized' } }
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user with counts
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK }, '401': { $ref: '#/components/responses/Unauthorized' } }
+  /api/movies/search:
+    get:
+      tags: [Movies]
+      summary: Search movies and series (cached)
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses: { '200': { description: OK }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/movies/popular/list:
+    get: { tags: [Movies], summary: Curated popular titles, responses: { '200': { description: OK } } }
+  /api/movies/batch:
+    post:
+      tags: [Movies]
+      summary: Metadata for up to 50 ids in one request
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, properties: { ids: { type: array, items: { $ref: '#/components/schemas/MediaId' } } } } } }
+      responses: { '200': { description: OK } }
+  /api/movies/{imdbId}:
+    get:
+      tags: [Movies]
+      summary: Full details for an IMDb or TMDB id
+      parameters: [{ name: imdbId, in: path, required: true, schema: { $ref: '#/components/schemas/MediaId' } }]
+      responses: { '200': { description: OK }, '404': { description: Not found } }
+  /api/tmdb/{path}:
+    get:
+      tags: [Movies]
+      summary: Cached, whitelisted TMDB passthrough (key stays on the server)
+      parameters: [{ name: path, in: path, required: true, schema: { type: string }, example: trending/movie/week }]
+      responses: { '200': { description: TMDB response }, '404': { description: Unsupported endpoint } }
+  /api/reviews:
+    post:
+      tags: [Reviews]
+      summary: Create or update your review for a title
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [imdbId, rating], properties: { imdbId: { $ref: '#/components/schemas/MediaId' }, rating: { type: integer }, comment: { type: string }, spoiler: { type: boolean } } } } }
+      responses: { '201': { description: Saved }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/reviews/movie/{imdbId}:
+    get:
+      tags: [Reviews]
+      summary: Reviews for a title
+      parameters:
+        - { name: imdbId, in: path, required: true, schema: { $ref: '#/components/schemas/MediaId' } }
+        - { name: sort, in: query, schema: { type: string, enum: [recent, helpful, rating] } }
+      responses: { '200': { description: OK } }
+  /api/reviews/{reviewId}/like:
+    post: { tags: [Reviews], summary: Like a review, security: [{ bearerAuth: [] }], parameters: [{ name: reviewId, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK } } }
+    delete: { tags: [Reviews], summary: Remove your like, security: [{ bearerAuth: [] }], parameters: [{ name: reviewId, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK } } }
+  /api/watchlist:
+    get: { tags: [Lists], summary: Your watchlist with movie metadata, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+    post: { tags: [Lists], summary: Add a title to your watchlist, security: [{ bearerAuth: [] }], responses: { '201': { description: Added }, '409': { description: Already present } } }
+  /api/favorites:
+    get: { tags: [Lists], summary: Your favorites with movie metadata, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+    post: { tags: [Lists], summary: Add a title to your favorites, security: [{ bearerAuth: [] }], responses: { '201': { description: Added } } }
+  /api/watched:
+    get: { tags: [Lists], summary: Titles you have watched, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+    post: { tags: [Lists], summary: Mark a title as watched, security: [{ bearerAuth: [] }], responses: { '201': { description: Added } } }
+  /api/recommendations:
+    get:
+      tags: [Discovery]
+      summary: Personalised picks (collaborative + genre-based, trending as fallback)
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+  /api/stats/me:
+    get: { tags: [Discovery], summary: Your viewing statistics, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+  /api/social/users:
+    get: { tags: [Social], summary: Search users by name, parameters: [{ name: q, in: query, required: true, schema: { type: string } }], responses: { '200': { description: OK } } }
+  /api/social/users/{id}:
+    get: { tags: [Social], summary: Public profile, parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK }, '404': { description: Not found } } }
+  /api/social/follow/{id}:
+    post: { tags: [Social], summary: Follow a user, security: [{ bearerAuth: [] }], parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK } } }
+    delete: { tags: [Social], summary: Unfollow a user, security: [{ bearerAuth: [] }], parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK } } }
+  /api/social/feed:
+    get: { tags: [Social], summary: Activity from people you follow, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+  /api/admin/dashboard:
+    get: { tags: [Admin], summary: Totals and recent activity (admin only), security: [{ bearerAuth: [] }], responses: { '200': { description: OK }, '403': { description: Not an admin } } }
