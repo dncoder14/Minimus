@@ -14,57 +14,106 @@ datasource db {
 }
 
 model User {
-  id            Int             @id @default(autoincrement())
-  name          String
-  email         String          @unique
-  password      String?         // null for Google-only accounts
-  role          Role            @default(USER)
-  reviews       Review[]
-  watchlists    Watchlist[]
-  favorites     Favorite[]
-  watched       Watched[]
-  createdAt     DateTime        @default(now())
+  id          Int          @id @default(autoincrement())
+  name        String
+  email       String       @unique
+  password    String? // null for Google-only accounts
+  role        Role         @default(USER)
+  reviews     Review[]
+  watchlists  Watchlist[]
+  favorites   Favorite[]
+  watched     Watched[]
+  reviewLikes ReviewLike[]
+  following   Follow[]     @relation("Following")
+  followers   Follow[]     @relation("Followers")
+  createdAt   DateTime     @default(now())
+}
+
+// Cached movie/series metadata. `id` is the same external id used by Review, Watchlist,
+// Favorite and Watched (an IMDb id like "tt0111161" or a TMDB id like "tmdb603").
+model Movie {
+  id        String   @id
+  title     String
+  year      String?
+  type      String   @default("movie")
+  poster    String?
+  plot      String?
+  genres    String[]
+  runtime   String?
+  director  String?
+  actors    String?
+  rating    Float?
+  votes     Int?
+  fetchedAt DateTime @default(now())
+
+  @@index([title])
+}
+
+model ReviewLike {
+  id        Int      @id @default(autoincrement())
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewId  Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, reviewId])
+}
+
+model Follow {
+  id          Int      @id @default(autoincrement())
+  follower    User     @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId  Int
+  following   User     @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+  followingId Int
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
 }
 
 model Review {
-  id        Int      @id @default(autoincrement())
-  imdbId    String   // IMDB ID reference
-  rating    Int      // 1-5 stars
+  id        Int          @id @default(autoincrement())
+  imdbId    String // IMDB ID reference
+  rating    Int // 1-5 stars
   comment   String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime     @default(now())
+  spoiler   Boolean      @default(false)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  
+  likes     ReviewLike[]
+
   @@unique([userId, imdbId]) // One review per user per movie
+  @@index([imdbId])
 }
 
 model Watchlist {
-  id        Int      @id @default(autoincrement())
-  imdbId    String   // IMDB ID reference
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  addedAt   DateTime @default(now())
-  
+  id      Int      @id @default(autoincrement())
+  imdbId  String // IMDB ID reference
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int
+  addedAt DateTime @default(now())
+
   @@unique([userId, imdbId]) // One entry per user per movie
 }
 
 model Favorite {
-  id        Int      @id @default(autoincrement())
-  imdbId    String   // IMDB ID reference
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  addedAt   DateTime @default(now())
-  
+  id      Int      @id @default(autoincrement())
+  imdbId  String // IMDB ID reference
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int
+  addedAt DateTime @default(now())
+
   @@unique([userId, imdbId])
 }
 
 model Watched {
-  id         Int      @id @default(autoincrement())
-  imdbId     String   // IMDB ID reference
-  user       User     @relation(fields: [userId], references: [id])
-  userId     Int
-  watchedAt  DateTime @default(now())
-  
+  id        Int      @id @default(autoincrement())
+  imdbId    String // IMDB ID reference
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  watchedAt DateTime @default(now())
+
   @@unique([userId, imdbId])
 }
 

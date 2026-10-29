@@ -1,115 +1,56 @@
 const express = require('express');
-const axios = require('axios');
-const { PrismaClient } = require('@prisma/client');
-const { authenticateToken } = require('../middleware/auth');
+const { asyncHandler, HttpError } = require('../lib/errors');
+const { z, validate, page, mediaId } = require('../lib/validate');
+const metadata = require('../services/metadata');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
-const OMDB_API_KEY = process.env.OMDB_API_KEY || 'c1c5dd61';
+const upstream = (err) => (err instanceof HttpError ? err : new HttpError(502, 'Movie data provider is unavailable'));
 
-// Search movies
-router.get('/search', async (req, res) => {
-  try {
-    const { q, page = 1 } = req.query;
-
-    if (!q) {
-      return res.status(400).json({ error: 'Search query is required' });
+router.get(
+  '/search',
+  validate({ query: z.object({ q: z.string().trim().min(1, 'Search query is required').max(100), page }) }),
+  asyncHandler(async (req, res) => {
+    const { q, page: pageNum } = req.query;
+    try {
+      const { results, totalResults } = await metadata.searchOmdb(q, pageNum);
+      res.json({ results, totalResults, page: pageNum });
+    } catch (err) {
+      throw upstream(err);
     }
+  })
+);
 
-    const response = await axios.get(`https://www.omdbapi.com/?s=${encodeURIComponent(q)}&page=${page}&apikey=${OMDB_API_KEY}`);
-    
-    if (response.data.Response === 'True') {
-      // Get detailed info for each result
-      const detailedResults = await Promise.all(
-        response.data.Search.slice(0, 10).map(async (item) => {
-          try {
-            const detailResponse = await axios.get(`https://www.omdbapi.com/?i=${item.imdbID}&apikey=${OMDB_API_KEY}`);
-            return detailResponse.data.Response === 'True' ? detailResponse.data : null;
-          } catch (error) {
-            return null;
-          }
-        })
-      );
-
-      const validResults = detailedResults.filter(item => item);
-      
-      res.json({
-        results: validResults,
-        totalResults: response.data.totalResults,
-        page: parseInt(page)
-      });
-    } else {
-      res.json({ results: [], totalResults: 0, page: parseInt(page) });
+router.get(
+  '/popular/list',
+  asyncHandler(async (req, res) => {
+    try {
+      res.json({ movies: await metadata.getPopular() });
+    } catch (err) {
+      throw upstream(err);
     }
-  } catch (error) {
-    console.error('Search error:', error);
-    res.status(500).json({ error: 'Search failed' });
-  }
-});
+  })
+);
 
-// Get movie by IMDB ID
-router.get('/:imdbId', async (req, res) => {
-  try {
-    const { imdbId } = req.params;
+// Batch lookup of cached summaries: POST { ids: [...] } -> { movies: [...] }
+router.post(
+  '/batch',
+  validate({ body: z.object({ ids: z.array(mediaId).min(1).max(50) }) }),
+  asyncHandler(async (req, res) => {
+    res.json({ movies: await metadata.getSummaries(req.body.ids) });
+  })
+);
 
-    // Fetch from OMDB API
-    const response = await axios.get(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
-    
-    if (response.data.Response === 'True') {
-      res.json({ movie: response.data });
-    } else {
-      return res.status(404).json({ error: 'Movie not found' });
+router.get(
+  '/:imdbId',
+  validate({ params: z.object({ imdbId: mediaId }) }),
+  asyncHandler(async (req, res) => {
+    try {
+      res.json({ movie: await metadata.getDetails(req.params.imdbId) });
+    } catch (err) {
+      throw upstream(err);
     }
-  } catch (error) {
-    console.error('Get movie error:', error);
-    res.status(500).json({ error: 'Failed to fetch movie' });
-  }
-});
-
-// Get popular movies
-router.get('/popular/list', async (req, res) => {
-  try {
-    const popularImdbIds = [
-      'tt0111161', 'tt0068646', 'tt0468569', 'tt0050083', 'tt0108052',
-      'tt0167260', 'tt0110912', 'tt0060196', 'tt0137523', 'tt0120737'
-    ];
-
-    const movies = await Promise.all(
-      popularImdbIds.map(async (imdbId) => {
-        try {
-          const response = await axios.get(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
-          return response.data.Response === 'True' ? response.data : null;
-        } catch (error) {
-          return null;
-        }
-      })
-    );
-
-    const validMovies = movies.filter(movie => movie);
-    res.json({ movies: validMovies });
-  } catch (error) {
-    console.error('Get popular movies error:', error);
-    res.status(500).json({ error: 'Failed to fetch popular movies' });
-  }
-});
-
-// Get movies by type (movie/series)
-router.get('/type/:type', async (req, res) => {
-  try {
-    const { type } = req.params;
-    const { page = 1 } = req.query;
-
-    if (!['movie', 'series'].includes(type)) {
-      return res.status(400).json({ error: 'Invalid type. Use movie or series' });
-    }
-
-    // For now, return empty array since we don't have movie storage
-    res.json({ movies: [], page: parseInt(page) });
-  } catch (error) {
-    console.error('Get movies by type error:', error);
-    res.status(500).json({ error: 'Failed to fetch movies' });
-  }
-});
+  })
+);
 
 module.exports = router;
