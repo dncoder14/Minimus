@@ -6,6 +6,12 @@ const { PrismaClient } = require('@prisma/client');
 // Load environment variables
 dotenv.config();
 
+const JWT_PLACEHOLDER = 'your-super-secret-jwt-key-change-this-in-production';
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === JWT_PLACEHOLDER) {
+  console.error('JWT_SECRET is missing or still the placeholder value. Set a strong secret.');
+  process.exit(1);
+}
+
 const app = express();
 const prisma = new PrismaClient();
 

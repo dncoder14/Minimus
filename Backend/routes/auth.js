@@ -2,10 +2,12 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
+const { OAuth2Client } = require('google-auth-library');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Google OAuth
 router.post('/google', async (req, res) => {
@@ -16,13 +18,23 @@ router.post('/google', async (req, res) => {
       return res.status(400).json({ error: 'Google credential is required' });
     }
 
-    // Decode Google JWT token
-    const base64Url = credential.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(Buffer.from(base64, 'base64').toString().split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-    const payload = JSON.parse(jsonPayload);
+    // Verify the ID token's signature, audience and expiry with Google
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID
+      });
+      payload = ticket.getPayload();
+    } catch (verifyError) {
+      return res.status(401).json({ error: 'Invalid Google credential' });
+    }
 
-    const { email, name, sub: googleId } = payload;
+    if (!payload.email || !payload.email_verified) {
+      return res.status(401).json({ error: 'Google account email is not verified' });
+    }
+
+    const { email, name } = payload;
 
     // Check if user exists
     let user = await prisma.user.findUnique({
@@ -30,12 +42,11 @@ router.post('/google', async (req, res) => {
     });
 
     if (!user) {
-      // Create new user with Google auth
+      // Google-only accounts have no password
       user = await prisma.user.create({
         data: {
-          name,
-          email,
-          password: await bcrypt.hash(googleId, 12) // Use Google ID as password hash
+          name: name || email.split('@')[0],
+          email
         },
         select: {
           id: true,
@@ -141,7 +152,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    // Google-only accounts have no password to compare against
+    const isValidPassword = user.password
+      ? await bcrypt.compare(password, user.password)
+      : false;
 
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
