@@ -166,12 +166,56 @@ describe('social', () => {
 
     await request(app).post('/api/reviews').set(auth(b.token)).send({ imdbId: 'tt0111161', rating: 5, comment: 'Loved it' });
     const feed = await request(app).get('/api/social/feed').set(auth(a.token));
-    expect(feed.body.items[0]).toMatchObject({ type: 'review', imdbId: 'tt0111161' });
+    expect(feed.body.items[0]).toMatchObject({ imdbId: 'tt0111161', actions: ['reviewed'] });
 
     const profile = await request(app).get(`/api/social/users/${b.user.id}`).set(auth(a.token));
     expect(profile.body.isFollowing).toBe(true);
 
     expect((await request(app).delete(`/api/social/follow/${b.user.id}`).set(auth(a.token))).body.isFollowing).toBe(false);
+  });
+});
+
+describe('feed privacy and grouping', () => {
+  test('merges events per title, hides lone "watched", respects privacy settings', async () => {
+    const viewer = await register('viewer');
+    const friend = await register('friend');
+    await request(app).post(`/api/social/follow/${friend.user.id}`).set(auth(viewer.token));
+
+    // watched alone does not create a card
+    await request(app).post('/api/watched').set(auth(friend.token)).send({ imdbId: 'tt0111161' });
+    expect((await request(app).get('/api/social/feed').set(auth(viewer.token))).body.items).toHaveLength(0);
+
+    // favorite + watched + review of the same title collapse into one card
+    await request(app).post('/api/favorites').set(auth(friend.token)).send({ imdbId: 'tt0111161' });
+    await request(app).post('/api/reviews').set(auth(friend.token)).send({ imdbId: 'tt0111161', rating: 5 });
+    let items = (await request(app).get('/api/social/feed').set(auth(viewer.token))).body.items;
+    expect(items).toHaveLength(1);
+    expect([...items[0].actions].sort()).toEqual(['favorited', 'reviewed', 'watched']);
+
+    // hiding favorites drops that action from new cards
+    await request(app).post('/api/favorites').set(auth(friend.token)).send({ imdbId: 'tt0068646' });
+    const hide = await request(app).put('/api/social/settings').set(auth(friend.token)).send({ showFavorites: false });
+    expect(hide.body.settings.showFavorites).toBe(false);
+    items = (await request(app).get('/api/social/feed').set(auth(viewer.token))).body.items;
+    expect(items.map((i) => i.imdbId)).toEqual(['tt0111161']);
+
+    // private users disappear from the feed, and their profile content is hidden
+    await request(app).put('/api/social/settings').set(auth(friend.token)).send({ activityVisibility: 'PRIVATE' });
+    expect((await request(app).get('/api/social/feed').set(auth(viewer.token))).body.items).toHaveLength(0);
+    const profile = await request(app).get(`/api/social/users/${friend.user.id}`).set(auth(viewer.token));
+    expect(profile.body.activityVisible).toBe(false);
+    expect(profile.body.recentReviews).toEqual([]);
+
+    // the owner still sees their own activity
+    const own = await request(app).get(`/api/social/users/${friend.user.id}`).set(auth(friend.token));
+    expect(own.body.activityVisible).toBe(true);
+    expect(own.body.recentReviews).toHaveLength(1);
+  });
+
+  test('settings reject invalid values', async () => {
+    const { token } = await register('settings');
+    const res = await request(app).put('/api/social/settings').set(auth(token)).send({ activityVisibility: 'EVERYONE' });
+    expect(res.status).toBe(400);
   });
 });
 

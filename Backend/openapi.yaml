@@ -145,6 +145,13 @@ paths:
     post: { tags: [Social], summary: Follow a user, security: [{ bearerAuth: [] }], parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK } } }
     delete: { tags: [Social], summary: Unfollow a user, security: [{ bearerAuth: [] }], parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK } } }
   /api/social/feed:
-    get: { tags: [Social], summary: Activity from people you follow, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+    get: { tags: [Social], summary: Activity from people you follow, one merged card per person and title, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+  /api/social/settings:
+    get: { tags: [Social], summary: Your activity privacy settings, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+    put:
+      tags: [Social]
+      summary: Update who can see your activity (PUBLIC, FOLLOWERS, PRIVATE) and whether favorites show
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK }, '400': { $ref: '#/components/responses/BadRequest' } }
   /api/admin/dashboard:
     get: { tags: [Admin], summary: Totals and recent activity (admin only), security: [{ bearerAuth: [] }], responses: { '200': { description: OK }, '403': { description: Not an admin } } }

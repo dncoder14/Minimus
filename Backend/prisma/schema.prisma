@@ -14,19 +14,22 @@ datasource db {
 }
 
 model User {
-  id          Int          @id @default(autoincrement())
-  name        String
-  email       String       @unique
-  password    String? // null for Google-only accounts
-  role        Role         @default(USER)
-  reviews     Review[]
-  watchlists  Watchlist[]
-  favorites   Favorite[]
-  watched     Watched[]
-  reviewLikes ReviewLike[]
-  following   Follow[]     @relation("Following")
-  followers   Follow[]     @relation("Followers")
-  createdAt   DateTime     @default(now())
+  id                 Int                @id @default(autoincrement())
+  name               String
+  email              String             @unique
+  password           String? // null for Google-only accounts
+  role               Role               @default(USER)
+  // Who can see this user's activity: PUBLIC (feed and profile), FOLLOWERS (followers only), PRIVATE (nobody)
+  activityVisibility ActivityVisibility @default(PUBLIC)
+  showFavorites      Boolean            @default(true)
+  reviews            Review[]
+  watchlists         Watchlist[]
+  favorites          Favorite[]
+  watched            Watched[]
+  reviewLikes        ReviewLike[]
+  following          Follow[]           @relation("Following")
+  followers          Follow[]           @relation("Followers")
+  createdAt          DateTime           @default(now())
 }
 
 // Cached movie/series metadata. `id` is the same external id used by Review, Watchlist,
@@ -120,4 +123,10 @@ model Watched {
 enum Role {
   USER
   ADMIN
+}
+
+enum ActivityVisibility {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
 }

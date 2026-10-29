@@ -87,6 +87,8 @@ export const socialAPI = {
   follow: (id) => api.post(`/social/follow/${id}`),
   unfollow: (id) => api.delete(`/social/follow/${id}`),
   feed: () => api.get('/social/feed'),
+  getSettings: () => api.get('/social/settings'),
+  updateSettings: (settings) => api.put('/social/settings', settings),
 };
 
 export default api;

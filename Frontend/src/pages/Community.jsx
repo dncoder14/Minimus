@@ -5,10 +5,11 @@ import { faSearch, faStar, faUser } from '@fortawesome/free-solid-svg-icons'
 import toast from 'react-hot-toast'
 import { socialAPI } from '../services/api'
 
-const ACTION_TEXT = {
-  review: 'reviewed',
-  favorite: 'added to favorites',
-  watched: 'watched',
+// "reviewed, favorited and watched" style sentence from a card's actions
+const describe = (actions) => {
+  const order = ['reviewed', 'favorited', 'watched']
+  const list = order.filter((a) => actions.includes(a))
+  return list.length > 1 ? `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}` : list[0]
 }
 
 const Community = () => {
@@ -35,17 +36,25 @@ const Community = () => {
     loadFeed()
   }, [])
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    if (!query.trim()) return
-    try {
-      const res = await socialAPI.searchUsers(query.trim())
-      setResults(res.data.users || [])
-      setSearched(true)
-    } catch {
-      toast.error('Search failed')
+  // Search as the user types (debounced); Enter still works through the form
+  useEffect(() => {
+    const term = query.trim()
+    if (!term) {
+      setResults([])
+      setSearched(false)
+      return
     }
-  }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await socialAPI.searchUsers(term)
+        setResults(res.data.users || [])
+        setSearched(true)
+      } catch {
+        toast.error('Search failed')
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query])
 
   const toggleFollow = async (person) => {
     try {
@@ -79,7 +88,7 @@ const Community = () => {
           ) : (
             <ul className="space-y-3">
               {feed.map((item, i) => (
-                <li key={`${item.type}-${item.imdbId}-${item.user.id}-${i}`} className="bg-gray-800 rounded-xl p-4 flex gap-4">
+                <li key={`${item.imdbId}-${item.user.id}-${i}`} className="bg-gray-800 rounded-xl p-4 flex gap-4">
                   <Link to={`/movie/${item.imdbId}`} className="shrink-0">
                     <img
                       src={item.movie?.poster || '/placeholder-movie.svg'}
@@ -89,12 +98,12 @@ const Community = () => {
                   </Link>
                   <div className="min-w-0">
                     <p className="text-gray-300">
-                      <span className="font-semibold text-white">{item.user.name}</span> {ACTION_TEXT[item.type]}{' '}
+                      <span className="font-semibold text-white">{item.user.name}</span> {describe(item.actions)}{' '}
                       <Link to={`/movie/${item.imdbId}`} className="text-cyan-400 hover:underline">
                         {item.movie?.title || item.imdbId}
                       </Link>
                     </p>
-                    {item.type === 'review' && (
+                    {item.actions.includes('reviewed') && (
                       <>
                         <div className="flex items-center space-x-1 my-1">
                           {[...Array(5)].map((_, s) => (
@@ -118,7 +127,7 @@ const Community = () => {
 
         <aside>
           <h2 className="text-xl font-semibold text-white mb-4">Find people</h2>
-          <form onSubmit={handleSearch} className="relative mb-4">
+          <form onSubmit={(e) => e.preventDefault()} className="relative mb-4">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}

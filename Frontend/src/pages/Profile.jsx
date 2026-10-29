@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { watchlistAPI, favoritesAPI, watchedAPI, reviewsAPI, discoverAPI } from '../services/api'
+import { watchlistAPI, favoritesAPI, watchedAPI, reviewsAPI, discoverAPI, socialAPI } from '../services/api'
+import toast from 'react-hot-toast'
 import { 
   faUser, 
   faHeart, 
@@ -20,11 +21,13 @@ const Profile = ({ user }) => {
   const [loading, setLoading] = useState(false)
   const [counts, setCounts] = useState({ watchlist: 0, favorites: 0, reviews: 0 })
   const [stats, setStats] = useState(null)
+  const [privacy, setPrivacy] = useState(null)
 
   useEffect(() => {
     if (user) {
       fetchData()
       discoverAPI.stats().then((res) => setStats(res.data.stats)).catch(() => setStats(null))
+      socialAPI.getSettings().then((res) => setPrivacy(res.data.settings)).catch(() => setPrivacy(null))
     }
   }, [user])
 
@@ -68,6 +71,19 @@ const Profile = ({ user }) => {
       console.error('Error fetching profile data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const updatePrivacy = async (changes) => {
+    const previous = privacy
+    setPrivacy({ ...privacy, ...changes })
+    try {
+      const res = await socialAPI.updateSettings(changes)
+      setPrivacy(res.data.settings)
+      toast.success('Privacy settings saved')
+    } catch {
+      setPrivacy(previous)
+      toast.error('Could not save privacy settings')
     }
   }
 
@@ -119,6 +135,38 @@ const Profile = ({ user }) => {
             </button>
           </div>
         </div>
+
+        {/* Privacy */}
+        {privacy && (
+          <div className="bg-gray-800 rounded-xl p-6 mb-8">
+            <h3 className="text-xl font-semibold mb-1">Activity privacy</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Controls what other people see in their feed and on your public profile. "Watched" is never shown on its own.
+            </p>
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <label className="flex items-center space-x-2 text-sm text-gray-300">
+                <span>Who can see my activity</span>
+                <select
+                  value={privacy.activityVisibility}
+                  onChange={(e) => updatePrivacy({ activityVisibility: e.target.value })}
+                  className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1 text-white"
+                >
+                  <option value="PUBLIC">Everyone</option>
+                  <option value="FOLLOWERS">Followers only</option>
+                  <option value="PRIVATE">Only me</option>
+                </select>
+              </label>
+              <label className="flex items-center space-x-2 text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={privacy.showFavorites}
+                  onChange={(e) => updatePrivacy({ showFavorites: e.target.checked })}
+                />
+                <span>Show my favorites</span>
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* Viewing stats */}
         {stats && stats.watchedCount > 0 && (

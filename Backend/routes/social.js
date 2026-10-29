@@ -38,24 +38,35 @@ router.get(
         id: true,
         name: true,
         createdAt: true,
+        activityVisibility: true,
+        showFavorites: true,
         _count: { select: { followers: true, following: true, reviews: true, watched: true } }
       }
     });
     if (!user) throw new HttpError(404, 'User not found');
 
-    const [reviews, favorites, follow] = await Promise.all([
+    const isSelf = req.user?.id === id;
+    const follow = req.user && !isSelf
+      ? await prisma.follow.findUnique({ where: { followerId_followingId: { followerId: req.user.id, followingId: id } } })
+      : null;
+
+    const { activityVisibility, showFavorites, ...publicUser } = user;
+    const visible =
+      isSelf || activityVisibility === 'PUBLIC' || (activityVisibility === 'FOLLOWERS' && !!follow);
+    const base = { user: publicUser, isFollowing: !!follow, activityVisible: visible };
+    if (!visible) return res.json({ ...base, recentReviews: [], favorites: [] });
+
+    const [reviews, favorites] = await Promise.all([
       prisma.review.findMany({ where: { userId: id }, orderBy: { createdAt: 'desc' }, take: 5 }),
-      prisma.favorite.findMany({ where: { userId: id }, orderBy: { addedAt: 'desc' }, take: 8 }),
-      req.user
-        ? prisma.follow.findUnique({ where: { followerId_followingId: { followerId: req.user.id, followingId: id } } })
-        : null
+      isSelf || showFavorites
+        ? prisma.favorite.findMany({ where: { userId: id }, orderBy: { addedAt: 'desc' }, take: 8 })
+        : []
     ]);
     const movies = await metadata.getSummaries([...reviews.map((r) => r.imdbId), ...favorites.map((f) => f.imdbId)]);
     const byId = new Map(movies.map((m) => [m.id, m]));
 
     res.json({
-      user,
-      isFollowing: !!follow,
+      ...base,
       recentReviews: reviews.map((r) => ({ ...r, movie: byId.get(r.imdbId) || null })),
       favorites: favorites.map((f) => ({ ...f, movie: byId.get(f.imdbId) || null }))
     });
@@ -90,35 +101,95 @@ router.delete(
   })
 );
 
-// Activity from people the user follows: reviews, favorites and watched, newest first
+// Activity from people the user follows, one card per person and title. Reviews and favorites
+// create cards; "watched" only appears as a detail on a card that already exists, because on its
+// own it is noisy and the most private signal. Users who set their activity to PRIVATE are skipped.
 router.get(
   '/feed',
   authenticateToken,
   validate({ query: z.object({ limit: limit(50, 20) }) }),
   asyncHandler(async (req, res) => {
-    const follows = await prisma.follow.findMany({ where: { followerId: req.user.id }, select: { followingId: true } });
-    const ids = follows.map((f) => f.followingId);
-    if (ids.length === 0) return res.json({ items: [], following: 0 });
+    const follows = await prisma.follow.findMany({
+      where: { followerId: req.user.id },
+      select: { following: { select: { id: true, name: true, activityVisibility: true, showFavorites: true } } }
+    });
+    const people = follows.map((f) => f.following);
+    const visible = people.filter((p) => p.activityVisibility !== 'PRIVATE');
+    if (visible.length === 0) return res.json({ items: [], following: people.length });
 
     const take = req.query.limit;
-    const base = { where: { userId: { in: ids } }, include: { user: { select: { id: true, name: true } } }, take };
-    const [reviews, favorites, watched] = await Promise.all([
-      prisma.review.findMany({ ...base, orderBy: { createdAt: 'desc' } }),
-      prisma.favorite.findMany({ ...base, orderBy: { addedAt: 'desc' } }),
-      prisma.watched.findMany({ ...base, orderBy: { watchedAt: 'desc' } })
+    const byUser = new Map(visible.map((p) => [p.id, p]));
+    const favoriteUsers = visible.filter((p) => p.showFavorites).map((p) => p.id);
+    const include = { user: { select: { id: true, name: true } } };
+
+    const [reviews, favorites] = await Promise.all([
+      prisma.review.findMany({ where: { userId: { in: [...byUser.keys()] } }, include, orderBy: { createdAt: 'desc' }, take }),
+      favoriteUsers.length
+        ? prisma.favorite.findMany({ where: { userId: { in: favoriteUsers } }, include, orderBy: { addedAt: 'desc' }, take })
+        : []
     ]);
 
-    const items = [
-      ...reviews.map((r) => ({ type: 'review', at: r.createdAt, user: r.user, imdbId: r.imdbId, rating: r.rating, comment: r.spoiler ? null : r.comment, spoiler: r.spoiler })),
-      ...favorites.map((f) => ({ type: 'favorite', at: f.addedAt, user: f.user, imdbId: f.imdbId })),
-      ...watched.map((w) => ({ type: 'watched', at: w.watchedAt, user: w.user, imdbId: w.imdbId }))
-    ]
-      .sort((a, b) => b.at - a.at)
-      .slice(0, take);
+    // Merge events for the same person and title into one card
+    const cards = new Map();
+    const card = (user, imdbId) => {
+      const key = `${user.id}:${imdbId}`;
+      if (!cards.has(key)) cards.set(key, { user, imdbId, at: new Date(0), actions: [] });
+      return cards.get(key);
+    };
+    const touch = (c, at, action) => {
+      if (at > c.at) c.at = at;
+      if (!c.actions.includes(action)) c.actions.push(action);
+    };
+    for (const r of reviews) {
+      const c = card(r.user, r.imdbId);
+      touch(c, r.createdAt, 'reviewed');
+      c.rating = r.rating;
+      c.spoiler = r.spoiler;
+      c.comment = r.spoiler ? null : r.comment;
+    }
+    for (const f of favorites) touch(card(f.user, f.imdbId), f.addedAt, 'favorited');
 
+    // Attach "watched" to existing cards only
+    const watched = await prisma.watched.findMany({
+      where: { OR: [...cards.values()].map((c) => ({ userId: c.user.id, imdbId: c.imdbId })) }
+    });
+    for (const w of watched) touch(cards.get(`${w.userId}:${w.imdbId}`), cards.get(`${w.userId}:${w.imdbId}`).at, 'watched');
+
+    const items = [...cards.values()].sort((a, b) => b.at - a.at).slice(0, take);
     const movies = await metadata.getSummaries(items.map((i) => i.imdbId));
     const byId = new Map(movies.map((m) => [m.id, m]));
-    res.json({ items: items.map((i) => ({ ...i, movie: byId.get(i.imdbId) || null })), following: ids.length });
+    res.json({ items: items.map((i) => ({ ...i, movie: byId.get(i.imdbId) || null })), following: people.length });
+  })
+);
+
+const settingsBody = z.object({
+  activityVisibility: z.enum(['PUBLIC', 'FOLLOWERS', 'PRIVATE']).optional(),
+  showFavorites: z.boolean().optional()
+});
+
+router.get(
+  '/settings',
+  authenticateToken,
+  asyncHandler(async (req, res) => {
+    const settings = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { activityVisibility: true, showFavorites: true }
+    });
+    res.json({ settings });
+  })
+);
+
+router.put(
+  '/settings',
+  authenticateToken,
+  validate({ body: settingsBody }),
+  asyncHandler(async (req, res) => {
+    const settings = await prisma.user.update({
+      where: { id: req.user.id },
+      data: req.body,
+      select: { activityVisibility: true, showFavorites: true }
+    });
+    res.json({ settings });
   })
 );
 
