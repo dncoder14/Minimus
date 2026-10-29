@@ -12,6 +12,7 @@ jest.mock('../services/metadata', () => {
     getDetails: jest.fn(async (id) => ({ Title: movies[id]?.title || 'Unknown', imdbID: id })),
     getPopular: jest.fn(async () => []),
     searchOmdb: jest.fn(async () => ({ results: [], totalResults: 0 })),
+    discover: jest.fn(async (kind, opts) => ({ results: [], page: opts.page, limit: opts.limit, totalResults: 0, totalPages: 0, kind, opts })),
     tmdbCached: jest.fn(async (path) => (path === '/genre/movie/list' ? { genres: [{ id: 18, name: 'Drama' }] } : { results: [] }))
   };
 });
@@ -216,6 +217,23 @@ describe('feed privacy and grouping', () => {
     const { token } = await register('settings');
     const res = await request(app).put('/api/social/settings').set(auth(token)).send({ activityVisibility: 'EVERYONE' });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('discover endpoint', () => {
+  test('validates input and passes parsed options to the service', async () => {
+    const metadata = require('../services/metadata');
+    const ok = await request(app).get('/api/discover/movie?genre=28&year=2024&sort=newest&page=2&limit=18');
+    expect(ok.status).toBe(200);
+    expect(metadata.discover).toHaveBeenLastCalledWith('movie', { genre: 28, year: 2024, sort: 'newest', page: 2, limit: 18 });
+
+    // defaults
+    await request(app).get('/api/discover/tv');
+    expect(metadata.discover).toHaveBeenLastCalledWith('tv', { sort: 'popular', page: 1, limit: 18 });
+
+    expect((await request(app).get('/api/discover/anime')).status).toBe(400);
+    expect((await request(app).get('/api/discover/movie?limit=500')).status).toBe(400);
+    expect((await request(app).get('/api/discover/movie?sort=random')).status).toBe(400);
   });
 });
 

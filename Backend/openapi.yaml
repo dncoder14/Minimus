@@ -100,6 +100,18 @@ paths:
       summary: Cached, whitelisted TMDB passthrough (key stays on the server)
       parameters: [{ name: path, in: path, required: true, schema: { type: string }, example: trending/movie/week }]
       responses: { '200': { description: TMDB response }, '404': { description: Unsupported endpoint } }
+  /api/discover/{kind}:
+    get:
+      tags: [Movies]
+      summary: Browse movies or series with your own page size (TMDB is fixed at 20 per page)
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string, enum: [movie, tv] } }
+        - { name: genre, in: query, schema: { type: integer }, description: TMDB genre id }
+        - { name: year, in: query, schema: { type: integer } }
+        - { name: sort, in: query, schema: { type: string, enum: [popular, top_rated, newest], default: popular } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 40, default: 18 } }
+      responses: { '200': { description: results, page, limit, totalResults, totalPages }, '400': { $ref: '#/components/responses/BadRequest' } }
   /api/reviews:
     post:
       tags: [Reviews]

@@ -57,3 +57,56 @@ describe('stats', () => {
     ]);
   });
 });
+
+describe('paged discovery', () => {
+  // jest.mock in api.test.js is per-file, so the real service is loaded here
+  const { pageWindow, discover } = require('../services/metadata');
+
+  test('pageWindow maps our pages onto TMDB pages of 20', () => {
+    expect(pageWindow(1, 18)).toEqual({ firstTmdbPage: 1, lastTmdbPage: 1, offset: 0 });
+    expect(pageWindow(2, 18)).toEqual({ firstTmdbPage: 1, lastTmdbPage: 2, offset: 18 }); // items 18-35
+    expect(pageWindow(3, 18)).toEqual({ firstTmdbPage: 2, lastTmdbPage: 3, offset: 16 }); // items 36-53
+    expect(pageWindow(4, 18)).toEqual({ firstTmdbPage: 3, lastTmdbPage: 4, offset: 14 }); // items 54-71
+    expect(pageWindow(1, 20)).toEqual({ firstTmdbPage: 1, lastTmdbPage: 1, offset: 0 });
+    expect(pageWindow(1, 40)).toEqual({ firstTmdbPage: 1, lastTmdbPage: 2, offset: 0 });
+  });
+
+  // Fake TMDB: 10,000 results, ids are the global position so gaps and repeats are easy to spot
+  const fakeTmdb = jest.fn(async (path, params) => ({
+    total_results: 10000,
+    results: Array.from({ length: 20 }, (_, i) => ({ id: (params.page - 1) * 20 + i, title: `Movie ${i}` }))
+  }));
+
+  test('consecutive pages join up with no gaps or repeats', async () => {
+    const ids = [];
+    for (let p = 1; p <= 5; p += 1) {
+      const { results } = await discover('movie', { page: p, limit: 18 }, fakeTmdb);
+      expect(results).toHaveLength(18);
+      ids.push(...results.map((r) => r.id));
+    }
+    expect(ids).toEqual(Array.from({ length: 90 }, (_, i) => `tmdb${i}`));
+  });
+
+  test('reports totals, builds filters and respects the 500 page cap', async () => {
+    fakeTmdb.mockClear();
+    const res = await discover('movie', { genre: 28, year: 2024, sort: 'top_rated', page: 1, limit: 18 }, fakeTmdb);
+    expect(res.totalResults).toBe(10000);
+    expect(res.totalPages).toBe(Math.ceil(10000 / 18));
+    expect(fakeTmdb).toHaveBeenCalledWith('/discover/movie', {
+      sort_by: 'vote_average.desc', 'vote_count.gte': 50, with_genres: 28, primary_release_year: 2024, page: 1
+    });
+
+    const beyond = await discover('movie', { page: 600, limit: 18 }, fakeTmdb); // start 10782 > TMDB's 10000
+    expect(beyond.results).toEqual([]);
+  });
+
+  test('series use the tv id prefix and tv-specific params', async () => {
+    fakeTmdb.mockClear();
+    const res = await discover('tv', { year: 2020, sort: 'newest', page: 1, limit: 5 }, async (path, params) => {
+      fakeTmdb(path, params);
+      return { total_results: 1, results: [{ id: 7, name: 'Show', first_air_date: '2020-05-01', poster_path: '/p.jpg' }] };
+    });
+    expect(res.results[0]).toMatchObject({ id: 'tmdbtv7', title: 'Show', year: '2020', type: 'series' });
+    expect(fakeTmdb.mock.calls[0][1]).toMatchObject({ sort_by: 'first_air_date.desc', first_air_date_year: 2020 });
+  });
+});

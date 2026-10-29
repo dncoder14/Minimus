@@ -51,6 +51,7 @@ app.use('/api/auth/google', limiter(15 * 60 * 1000, 40, 'Too many login attempts
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/movies', require('./routes/movies'));
 app.use('/api/tmdb', require('./routes/tmdb'));
+app.use('/api/discover', require('./routes/discover'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/watchlist', require('./routes/watchlist'));
 app.use('/api/favorites', require('./routes/favorites'));
