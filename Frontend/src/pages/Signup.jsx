@@ -125,7 +125,7 @@ const Signup = ({ setUser }) => {
       setUser(user)
       toast.success('Account created successfully!')
       navigate('/dashboard')
-    } catch (error) {
+    } catch {
       toast.error('Google authentication failed')
     } finally {
       setLoading(false)

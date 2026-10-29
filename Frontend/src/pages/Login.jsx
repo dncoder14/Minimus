@@ -87,7 +87,7 @@ const Login = ({ setUser }) => {
       setUser(user)
       toast.success('Login successful!')
       navigate('/dashboard')
-    } catch (error) {
+    } catch {
       toast.error('Google authentication failed')
     } finally {
       setLoading(false)
